@@ -3,7 +3,7 @@
 #' @import shiny DT shinyjs shinythemes
 
 # create the shiny application user interface
-msqrob2UI <- fluidPage(theme = "msqrob2gui.css",
+msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
 
   shinyjs::useShinyjs(),
 
