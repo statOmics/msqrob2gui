@@ -1,30 +1,12 @@
-library(shiny)
-library(DT)
-library(shinyjs)
-library(shinythemes)
-source("utilities.R")
-source("helper.R")
+#' Shiny app server object
+#'
+#' @import shiny DT shinyjs shinythemes
 
+# create the shiny application user interface
+msqrob2UI <- fluidPage(theme = "msqrob2gui.css",
 
-#runApp("pathToApp/App-MsqRob-devel")
-
-####################################
-###User Interface
-####################################
-
-shinyUI(fluidPage(theme = "MSqRob.css",
-
-  #Use shinyjs package
   shinyjs::useShinyjs(),
 
-  #CSS styles
-  # tags$head(
-  #   tags$style(HTML("
-  # [disabled] {
-  # color: pink;
-  # }
-  #   "))
-  # ),
   tags$head(
          HTML(
            "
@@ -47,7 +29,7 @@ shinyUI(fluidPage(theme = "MSqRob.css",
 ############################################################################
 #Navigation bar with 4 panel:Input, preprocessing, summarisation, quantification
 ############################################################################
-   navbarPage("MSqRob Shiny App v 0.7.6", inverse=TRUE,
+   navbarPage("msqrob2 Shiny App v 0.0.1", inverse=TRUE,
 
 
     ####################################
@@ -542,4 +524,4 @@ sidebarLayout(
 
 
 #close navbar, page, etc.
-)))
+))

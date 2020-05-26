@@ -7090,7 +7090,7 @@ button.MSqRob_tooltip {
 div.shiny-input-container{
   display: inline;
 /*
-  width:200%;  
+  width:200%;
   padding:0;
   margin:0;
   */
@@ -7105,7 +7105,7 @@ div.MSqRob_input_container{
 div.checkbox{
   display: inline;
 /*
-  width:200%;  
+  width:200%;
   padding:0;
   margin:0;
   */
@@ -7173,19 +7173,19 @@ button.MSqRob_button_space{
 /*Give this checkbox label ("Evaluate preprocessing") an h4-like appearance*/
 .checkbox label > input#evalnorm + span{
   display: inline;
-  
+
   /*
   margin-bottom: 1em;
   margin-top: 0;
   */
-  
+
   /*font-family: inherit;*/
   font-weight: 500;
   color: inherit;
 
   margin-left: 0;
   margin-right: 0;
-  
+
   font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
   /*font-weight: 400;*/
   font-size: 19px;
@@ -7305,6 +7305,3 @@ li.active{
   border:0;
 }
 */
-
-
-

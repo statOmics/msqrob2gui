@@ -1,22 +1,15 @@
-#source('directoryInput.R')
-library(shiny)
-library(DT)
-library(shinyjs)
-library(lme4)
-library(msqrob2)
-library(MSnbase)
-library(grDevices)
-library(limma)
-library(graphics)
-library(ggplot2)
-source("utilities.R")
-source("helper.R")
-library("ExploreModelMatrix")
-variables <- reactiveValues(pe=NULL)
-#Max file size: 500 Mb
-options(shiny.maxRequestSize=500*1024^2)
+#' Shiny app server function
+#'
+#' @param input provided by shiny
+#' @param output provided by shiny
+#' @param session provided by shiny
+#' @import shiny msqrob2 MSnbase grDevices limma graphics ggplot2 ExploreModelMatrix
+
+
 # Define server logic required to draw a histogram
-shinyServer(function(input, output, session) {
+msqrob2Server <- function(input, output, session) {
+variables <- reactiveValues(pe=NULL)
+# Define server logic required to draw a histogram
 
   ###########################################
   #Input Tab
@@ -533,7 +526,7 @@ observe({
   )
 
   output$volcanoPlot <- renderPlot(
-      makeVolcanoPlot2(dataAll(),clickInfo,input,ranges)
+      makeVolcanoPlot(dataAll(),clickInfo,input,ranges)
   )
 
     #When a double-click happens, check if there's a brush on the plot.
@@ -673,4 +666,4 @@ observeEvent(input$remove_all_selection, {
     })
   #Stop the App when closing the browser or ending the session
   session$onSessionEnded(stopApp)
-})
+}
