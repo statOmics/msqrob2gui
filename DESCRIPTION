@@ -11,14 +11,13 @@ Authors@R:
 Description: Shiny Apps building on the msqrob2 package for robust statistical inference for quantitative proteomics
    using the Feature infrastructure for quantitative mass spectrometry
    data.
-Depends: R (>= 3.6.0), msqrob2
+Depends: R (>= 3.6.0), msqrob2, shinyjs, shinythemes
 Imports:
 Remotes:
    RforMassSpectrometry/Features
 License: Artistic-2.0
-Collate: directoryInput.R helper.R launchMsqrob2Gui.R msqrob2Server.R msqrob2UI.R utilities.R
+Collate: launchMsqrob2Gui.R msqrob2Server.R msqrob2UI.R utilities.R
 Encoding: UTF-8
 LazyData: true
-StagedInstall: no
 Roxygen: list(markdown=TRUE)
 RoxygenNote: 7.0.2

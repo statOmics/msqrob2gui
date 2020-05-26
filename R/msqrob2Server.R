@@ -15,16 +15,6 @@ variables <- reactiveValues(pe=NULL)
   #Input Tab
   ###########################################
 
-  #Change the default for protein groups: if MaxQuant: set to true, if not, set to FALSE
-
-  #counter to avoid app to be killed when running on shiny server.
-  output$keepAlive <- renderText({
-        req(input$count)
-        paste("keep alive ", input$count)
-      })
-
-
-
       anotationFileToDownload <- eventReactive(input$goAnnotation, {
       data.frame(run = colnames(variables$pe[[1]]))
       })
@@ -161,10 +151,10 @@ observe({
 
 
   output$selectColPlotNorm1 <- renderUI({
-    div(class="MSqRob_input_container",
+    div(
         list(
-          tags$label("Color variable", `for`="selColPlotNorm", class="MSqRob_label"),
-          tags$button(id="button_selColPlotNorm", tags$sup("[?]"), class="MSqRob_tooltip"),
+          tags$label("Color variable", `for`="selColPlotNorm"),
+          tags$button(id="button_selColPlotNorm", tags$sup("[?]")),
           selectInput("selColPlotNorm1", label=NULL,  plotDependentVars()),
           hidden(helpText(id="tooltip_selColPlotNorm","Select the variable by which the densities should be colored."))
         )
@@ -172,10 +162,10 @@ observe({
   })
 
   output$selectColPlotProt <- renderUI({
-    div(class="MSqRob_input_container",
+    div(
         list(
-          tags$label("Color variable", `for`="selColPlotProt", class="MSqRob_label"),
-          tags$button(id="button_selColPlotProt", tags$sup("[?]"), class="MSqRob_tooltip"),
+          tags$label("Color variable", `for`="selColPlotProt"),
+          tags$button(id="button_selColPlotProt", tags$sup("[?]")),
           selectInput("selColPlotProt", label=NULL,  plotDependentVars()),
           hidden(helpText(id="tooltip_selColPlotPlot","Select the variable by which the densities should be colored."))
         )
@@ -383,7 +373,6 @@ observe({
   ######################
 
   observeEvent(input$goSum,{
-  withBusyIndicatorServer("goSum", {
     if (!is.null(variables$pe)){
       if ("featureNorm" %in% names(variables$pe)){
           if (input$summarisation=="robust") fun <-MsCoreUtils::robustSummary
@@ -402,8 +391,6 @@ observe({
           } else (showNotification("Run normalisation first",type="error"))
       }
   })
-  })
-
 
   ####MDS plot proteins with zoom####
   observeEvent(input$plotMDSProt_dblclick, {
@@ -461,7 +448,7 @@ observe({
   #######################
 
   output$selectFixed <- renderUI({
-      h4(paste(colnames(colData(variables$pe)),collapse="\n"), class="MSqRob_topheader")
+      h4(paste(colnames(colData(variables$pe)),collapse="\n"))
       })
 
   visDesign <- reactive({
@@ -502,14 +489,12 @@ observe({
                  })
         })
       observeEvent(input$fitModel,{
-      withBusyIndicatorServer("fitModel", {
           peOut <- variables$pe
           peOut <- try(msqrob(object=peOut,i="summarized", formula=stats::as.formula(input$designformula),overwrite=TRUE, ridge=input$doRidge==1))
 
           if (class(peOut)=="Features") {
           variables$pe <- peOut
           }
-      })
       })
       output$annotationDataMatrix <- DT::renderDataTable(as.data.frame(colData(variables$pe)))
   ###########
@@ -633,10 +618,10 @@ observeEvent(input$remove_all_selection, {
   )
 
   output$selectColDetailPlot2 <- renderUI({
-    div(class="MSqRob_input_container",
+    div(
         list(
-          tags$label("Color variable", `for`="selColDetailPlot2", class="MSqRob_label"),
-          tags$button(id="button_selColDetailPlot2", tags$sup("[?]"), class="MSqRob_tooltip"),
+          tags$label("Color variable", `for`="selColDetailPlot2"),
+          tags$button(id="button_selColDetailPlot2", tags$sup("[?]")),
           selectInput("selColDetailPlot2", label=NULL,  plotDependentVars()),
           hidden(helpText(id="tooltip_selColDetailPlot2","Select the variable by which the densities should be colored."))
         )
@@ -644,10 +629,10 @@ observeEvent(input$remove_all_selection, {
   })
 
   output$selectHorizontalDetailPlot2 <- renderUI({
-    div(class="MSqRob_input_container",
+    div(
         list(
-          tags$label("Horizontal split", `for`="selHorDetailPlot2", class="MSqRob_label"),
-          tags$button(id="button_selHorDetailPlot2", tags$sup("[?]"), class="MSqRob_tooltip"),
+          tags$label("Horizontal split", `for`="selHorDetailPlot2"),
+          tags$button(id="button_selHorDetailPlot2", tags$sup("[?]")),
           selectInput("selHorDetailPlot2", label=NULL,  plotDependentVars()),
           hidden(helpText(id="tooltip_selHorDetailPlot2","Select the variable by which the plots should be stratified horizontally. Select \'none\' to show all data in one plot."))
         )
@@ -655,10 +640,10 @@ observeEvent(input$remove_all_selection, {
   })
 
   output$selectVerticalDetailPlot2 <- renderUI({
-      div(class="MSqRob_input_container",
+      div(
           list(
-            tags$label("Vertical split", `for`="selVertDetailPlot2", class="MSqRob_label"),
-            tags$button(id="button_selVertDetailPlot2", tags$sup("[?]"), class="MSqRob_tooltip"),
+            tags$label("Vertical split", `for`="selVertDetailPlot2"),
+            tags$button(id="button_selVertDetailPlot2", tags$sup("[?]")),
             selectInput("selVertDetailPlot2", label=NULL,  plotDependentVars()),
             hidden(helpText(id="tooltip_selVertDetailPlot2","Select the variable by which the plots should be stratified vertically. Select \'none\' to show all data in one plot."))
           )
