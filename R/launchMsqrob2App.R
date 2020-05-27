@@ -9,12 +9,13 @@
 #' @example
 #' \dontrun{launchMsqrob2App()}
 #'
-#' @import shiny
+#' @import shiny shinyjs
 #'
 
 
 # wrapper for shiny::shinyApp()
 launchMsqrob2App <- function(maxSize=500) {
+  shinyjs::useShinyjs()
   options(shiny.maxRequestSize=maxSize*1024^2)
   shinyApp(ui = msqrob2UI, server = msqrob2Server)
 }

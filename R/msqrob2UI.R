@@ -77,7 +77,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
             div(
               list(
                 h4("What is an annotation file?"),
-                tags$button(id="button_newExpAnnText",tags$sup("[show]")),
+                tags$button(id="button_newExpAnnText",tags$sup("[?]")),
                 actionButton(inputId="goAnnotation", label="Generate Annotation File!"),
                 htmlOutput("downloadButtonDownloadAnnot"),
                 hidden(helpText(id="tooltip_newExpAnnText",
@@ -98,7 +98,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
             div(
             list(
             h4("How do I cite MSqRob?"),
-            tags$button(id="button_cite",tags$sup("[show]"))
+            tags$button(id="button_cite",tags$sup("[?]"))
             )
             ),
             hidden(helpText(id="tooltip_cite",
@@ -116,21 +116,8 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
             "
             Goeminne, L. J. E., Gevaert, K. and Clement, L. (2017).
             Experimental design and data-analysis in label-free quantitative LC/MS proteomics:
-            A tutorial with MSqRob. Journal of Proteomics (in press).")),
-            div(
-            list(
-            h4("My question is not in this list!"),
-            tags$button(id="button_notinlist",tags$sup("[show]"))
+            A tutorial with MSqRob. Journal of Proteomics (in press).")
             )
-            ),
-            hidden(helpText(id="tooltip_notinlist",
-                            "We are always ready to help you with any kind of issue that you might encounter!
-                             If for some reason, using MSqRob is hard or counter-intuitive to you,
-                             or you encounter some weird and unexpected results,
-                             please do not hesitate to contact us at", a("ludger.goeminne@vib-ugent.be.", href="mailto:ludger.goeminne@vib-ugent.be"),
-                             strong("User feedback is very important to us in order to improve MSqRob's user-friendliness.")
-                            )
-                  )
             )
         )
     )
@@ -374,13 +361,13 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
           div(
             list(
               h4("MDS plot after full preprocessing"),
-              tags$button(id="button_h4_MDS_full_preprocessing",tags$sup("[?]"))
+              tags$button(id="button_h4_MDS_summarisation",tags$sup("[?]"))
               )
             ),
 
           hidden(
             helpText(
-              id="tooltip_h4_MDS_full_preprocessing",
+              id="tooltip_h4_MDS_summarisation",
               "A multidimensional scaling plot. This plot shows a two-dimensional scatterplot
               so that distances on the plot approximate the typical log2 fold changes between the samples based on a pairwise comparison
               of the 500 most different features.
@@ -421,10 +408,10 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
            div(
             list(
               tags$label("Design formula"),
-              tags$button(id="button_fixed", tags$sup("[?]")),
+              tags$button(id="button_formula", tags$sup("[?]")),
               shiny::textInput("designformula", label=NULL,"~1"),
               hidden(
-                helpText(id="tooltip_fixed","
+                helpText(id="tooltip_formula","
                   Make Formula"
                   )
                 )
@@ -467,12 +454,12 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
           h4(htmlOutput("modelParams")),
           div(
             list(
-              tags$label("Contrast"),
-              tags$button(id="button_fixed", tags$sup("[?]")),
+              tags$label("Null hypothesis"),
+              tags$button(id="button_contrast", tags$sup("[?]")),
               shiny::textInput("contrast", label=NULL,""),
               hidden(
-                helpText(id="tooltip_fixed",
-                  "Make Formula"
+                helpText(id="tooltip_contrast",
+                  "Formulate null hypothesis in terms of a (linear combination) of the model parameters."
                   )
                 )
               )

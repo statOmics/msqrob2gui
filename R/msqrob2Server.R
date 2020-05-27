@@ -99,9 +99,7 @@ observe({
                    shinyjs::toggle(id = "tooltip_notinlist", anim = TRUE))
   shinyjs::onclick("button_logtransform",
                    shinyjs::toggle(id = "tooltip_logtransform", anim = TRUE))
-  shinyjs::onclick("button_log_base",
-                   shinyjs::toggle(id = "tooltip_log_base", anim = TRUE))
-  shinyjs::onclick("button_normalisation",
+    shinyjs::onclick("button_normalisation",
                    shinyjs::toggle(id = "tooltip_normalisation", anim = TRUE))
   shinyjs::onclick("button_onlysite",
                    shinyjs::toggle(id = "tooltip_onlysite", anim = TRUE))
@@ -118,14 +116,29 @@ observe({
   shinyjs::onclick("button_h4_int_transformation",
                    shinyjs::toggle(id = "tooltip_h4_int_transformation", anim = TRUE))
   shinyjs::onclick("button_h4_full_preprocessing",
-                   shinyjs::toggle(id = "tooltip_h4_full_preprocessing", anim = TRUE))
-  shinyjs::onclick("button_h4_MDS_full_preprocessing",
-                   shinyjs::toggle(id = "tooltip_h4_MDS_full_preprocessing", anim = TRUE))
-
+                   shinyjs::toggle(id = "tooltip_h4_normalisation", anim = TRUE))
+  shinyjs::onclick("button_h4_MDS_full_normalisation",
+                   shinyjs::toggle(id = "tooltip_h4_MDS_normalisation", anim = TRUE))
   shinyjs::onclick("button_proteins",
                    shinyjs::toggle(id = "tooltip_proteins", anim = TRUE))
-  })
+  shinyjs::onclick("button_summarisation",
+                   shinyjs::toggle(id = "tooltip_summarisation", anim = TRUE))
+  shinyjs::onclick("button_h4_MDS_summarisation",
+                   shinyjs::toggle(id = "tooltip_h4_MDS_summarisation", anim = TRUE))
+  shinyjs::onclick("button_formula",
+                   shinyjs::toggle(id = "tooltip_formula", anim = TRUE))
+  shinyjs::onclick("button_doRidge",
+                   shinyjs::toggle(id = "tooltip_doRidge", anim = TRUE))
+  shinyjs::onclick("button_contrast",
+                   shinyjs::toggle(id = "tooltip_contrast", anim = TRUE))
+  shinyjs::onclick("button_alpha",
+                   shinyjs::toggle(id = "tooltip_alpha", anim = TRUE))
+  shinyjs::onclick("button_sigOnly",
+                   shinyjs::toggle(id = "tooltip_sigOnly", anim = TRUE))
+  shinyjs::onclick("button_selColPlotProt",
+                   shinyjs::toggle(id = "tooltip_selColPlotProt", anim = TRUE))
 
+  })
 
 
   ##############################################
@@ -169,7 +182,7 @@ observe({
           tags$label("Color variable", `for`="selColPlotProt"),
           tags$button(id="button_selColPlotProt", tags$sup("[?]")),
           selectInput("selColPlotProt", label=NULL,  plotDependentVars()),
-          hidden(helpText(id="tooltip_selColPlotPlot","Select the variable by which the densities should be colored."))
+          hidden(helpText(id="tooltip_selColPlotProt","Select the variable by which the densities should be colored."))
         )
     )
   })
@@ -625,7 +638,7 @@ observeEvent(input$remove_all_selection, {
           tags$label("Color variable", `for`="selColDetailPlot2"),
           tags$button(id="button_selColDetailPlot2", tags$sup("[?]")),
           selectInput("selColDetailPlot2", label=NULL,  plotDependentVars()),
-          hidden(helpText(id="tooltip_selColDetailPlot2","Select the variable by which the densities should be colored."))
+          hidden(helpText(id="tooltip_selColDetailPlot2","Select the variable by which the boxplots should be colored."))
         )
     )
   })
@@ -651,6 +664,16 @@ observeEvent(input$remove_all_selection, {
           )
       )
     })
+
+    observe({
+      shinyjs::onclick("button_selColDetailPlot2",
+                     shinyjs::toggle(id = "tooltip_selColDetailPlot2", anim = TRUE))
+      shinyjs::onclick("button_selHorDetailPlot2",
+                     shinyjs::toggle(id = "tooltip_selHorDetailPlot2", anim = TRUE))
+      shinyjs::onclick("button_selVertDetailPlot2",
+                     shinyjs::toggle(id = "tooltip_selVertDetailPlot2", anim = TRUE))
+    })
+
   #Stop the App when closing the browser or ending the session
   session$onSessionEnded(stopApp)
 }
