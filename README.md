@@ -11,7 +11,7 @@ The `msqrob2gui` package implements shiny apps for [`msqrob2`](github.com/statOm
 ## Installation
 
 ```{r}
-BiocManager::install("lgatto/Features")
+BiocManager::install("rformassspectrometry/Features")
 BiocManager::install("statomics/msqrob2")
 BiocManager::install("statomics/msqrob2gui")
 ```
