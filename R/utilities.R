@@ -56,8 +56,8 @@ makeVolcanoPlot <- function(dataset,
   if (length(s)) {
     subdataset <- clickInfo()[s, , drop = FALSE]
     return(volcano +
-           geom_point(data=subdataset[subdataset$adjPval<input$alpha,],col="purple",size=5,show.legend=FALSE) +
-           geom_point(data=subdataset[subdataset$adjPval>=input$alpha,],col="grey",size=5,show.legend=FALSE)
+           geom_point(data=subdataset[subdataset$adjPval<input$alpha,],col="firebrick",size=5,show.legend=FALSE) +
+           geom_point(data=subdataset[subdataset$adjPval>=input$alpha,],col="#112446",size=5,show.legend=FALSE)
            )
     } else {
     return(return(volcano))

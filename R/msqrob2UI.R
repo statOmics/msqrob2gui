@@ -1,7 +1,5 @@
 #' Shiny app server object
-#' @export
-#' @import shiny DT shinyjs shinythemes
-
+#' @import shiny DT shinyjs shinythemes shinybusy
 # create the shiny application user interface
 msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
     shinyjs::useShinyjs(),

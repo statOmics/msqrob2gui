@@ -3,7 +3,6 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @export
 #' @import shiny msqrob2 MSnbase grDevices limma graphics ggplot2 ExploreModelMatrix
 
 
@@ -256,6 +255,11 @@ observe({
 
 
   observeEvent(input$goNorm,{
+    show_modal_spinner(
+      spin = "cube-grid",
+      color = "#112446",
+      text = "Normalising data..."
+      )
     if (!is.null(variables$pe)){
       if ("featureLog" %in% names(variables$pe) & input$normalisation!="vsn"){
         i <- "featureLog"
@@ -280,6 +284,7 @@ observe({
          output$nfeaturesNormalized <- renderText(nrow(peOut[["featureNorm"]]))
         }
       }
+      remove_modal_spinner()
   })
 
 
@@ -388,6 +393,11 @@ observe({
   ######################
 
   observeEvent(input$goSum,{
+    show_modal_spinner(
+      spin = "cube-grid",
+      color = "#112446",
+      text = "Summarising data..."
+      )
     if (!is.null(variables$pe)){
       if ("featureNorm" %in% names(variables$pe)){
           if (input$summarisation=="robust") fun <-MsCoreUtils::robustSummary
@@ -405,6 +415,7 @@ observe({
           variables$pe <- peOut
           } else (showNotification("Run normalisation first",type="error"))
       }
+      remove_modal_spinner()
   })
 
   ####MDS plot proteins with zoom####
@@ -453,7 +464,7 @@ observe({
               plotMDS(se,col=colors,xlim=rangesMDSProt$x,ylim=rangesMDSProt$y,pch=pch,labels=labels)
               } else {
               plot(0,0,xaxt="none",yaxt="none",col=0,xlab="",ylab="")
-              text(0,0,"Run summarisation",col="red",cex=3)
+              text(0,0,"Select normalisation method &\nHit start summarisation",col="#112446",cex=3)
               }
           }
     })
@@ -504,12 +515,18 @@ observe({
                  })
         })
       observeEvent(input$fitModel,{
+          show_modal_spinner(
+            spin = "cube-grid",
+            color = "#112446",
+            text = "Summarising data..."
+            )
           peOut <- variables$pe
           peOut <- try(msqrob(object=peOut,i="summarized", formula=stats::as.formula(input$designformula),overwrite=TRUE, ridge=input$doRidge==1))
 
           if (class(peOut)=="Features") {
           variables$pe <- peOut
           }
+          remove_modal_spinner()
       })
       output$annotationDataMatrix <- DT::renderDataTable(as.data.frame(colData(variables$pe)))
   ###########
