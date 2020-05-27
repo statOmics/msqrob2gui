@@ -16,7 +16,7 @@ Imports:
 Remotes:
    RforMassSpectrometry/Features
 License: Artistic-2.0
-Collate: launchMsqrob2Gui.R msqrob2Server.R msqrob2UI.R utilities.R
+Collate: utilities.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R 
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown=TRUE)

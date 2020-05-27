@@ -6,7 +6,8 @@
 #'
 #' @return shiny application object
 #'
-#' @example \dontrun{launchMsqrob2App}
+#' @example
+#' \dontrun{launchMsqrob2App()}
 #'
 #' @import shiny
 #'
