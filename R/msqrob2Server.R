@@ -3,11 +3,13 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
+#' @export
 #' @import shiny msqrob2 MSnbase grDevices limma graphics ggplot2 ExploreModelMatrix
 
 
 # Define server logic required to draw a histogram
 msqrob2Server <- function(input, output, session) {
+shinyjs::useShinyjs()
 variables <- reactiveValues(pe=NULL)
 # Define server logic required to draw a histogram
 

@@ -1,5 +1,5 @@
 #' Shiny app server object
-#'
+#' @export
 #' @import shiny DT shinyjs shinythemes
 
 # create the shiny application user interface
@@ -78,7 +78,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               list(
                 h4("What is an annotation file?"),
                 tags$button(id="button_newExpAnnText",tags$sup("[show]")),
-                actionButton(inputId="goAnnotation", label="Generate Annotation File!", class="MSqRob_button_space"),
+                actionButton(inputId="goAnnotation", label="Generate Annotation File!"),
                 htmlOutput("downloadButtonDownloadAnnot"),
                 hidden(helpText(id="tooltip_newExpAnnText",
                   "An experimental annotation file contains the description of your experiment.
@@ -177,24 +177,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
                     )
                ),
 
-            div(
-                list(conditionalPanel(
-                                        condition = "input.logtransform == true",
-                                        tags$label("Base", `for`="log_base"),
-                                        tags$button(id="button_log_base", tags$sup("[?]")),
-                                        numericInput("log_base", NULL, value=2, min = 1, max = NA, step = NA, width = '100%'),
-                                        hidden(
-                                          helpText(id="tooltip_log_base",
-                                          "The base of the logarithm when log-transformation is performed.
-                                          Often, a base of 2 is chosen, because the results will then have interpretations
-                                          in terms of log2 fold changes.
-                                          ")
-                                        )
-                                      )
-                  )
-              ),
-
-            h4("Filtering", class="MSqRob_sidebar"),
+            h4("Filtering"),
 
             div(
                 list(checkboxInput("smallestUniqueGroups", "Remove compromising protein groups", value=TRUE),
@@ -239,7 +222,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               )
             ),
 
-            h4("Normalization", class="MSqRob_sidebar"),
+            h4("Normalization"),
 
             div(
               list(
@@ -259,8 +242,8 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
             ),
 
             actionButton(inputId="goNorm",
-                         label="Start Normalization!",
-                         class="MSqRob_button_space")
+                         label="Start Normalization!"
+                         )
           ),
 
 
@@ -305,9 +288,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
                   list(
                     h4("feature intensities after normalisation"),
                     tags$button(id="button_h4_normalisation",
-                      tags$sup("[?]"),
-                      class="MSqRob_tooltip"
-                      )
+                      tags$sup("[?]")                      )
                     )
                   ),
 
@@ -369,7 +350,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
 
           h3("Settings"),
 
-          h4("Summarisation", class="MSqRob_sidebar"),
+          h4("Summarisation"),
 
           div(
             list(
@@ -382,7 +363,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
                  "Select the type of summarization from the dropdown menu."
                  )
                 ),
-              actionButton(inputId="goSum", label="Start Summarisation!", class="MSqRob_button_space")
+              actionButton(inputId="goSum", label="Start Summarisation!")
               )
             )
           ),
@@ -464,7 +445,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               )
             ),
 
-          actionButton(inputId="fitModel", label="Fit Model!", class="MSqRob_button_space")
+          actionButton(inputId="fitModel", label="Fit Model!")
           ),
 
         mainPanel(
