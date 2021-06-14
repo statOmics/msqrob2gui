@@ -216,7 +216,7 @@ observe({
       if(input$input_type=="mzTab"){
           ecols <- grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
       }
-      peOut <- try(readFeatures(table = featuresDatapath(), fnames = 1, ecol = ecols,
+      peOut <- try(readQFeatures(table = featuresDatapath(), fnames = 1, ecol = ecols,
               name = "featureRaw", sep="\t"))
       if (class(peOut)[1]=="try-error"|length(ecols)<1) {
           showNotification("Upload proper peptide file that is compliant with the input type",id="noProperPeptideFile",type="error",duration=NULL,closeButton=FALSE)
