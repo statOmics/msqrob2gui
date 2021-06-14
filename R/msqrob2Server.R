@@ -3,7 +3,7 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @import shiny msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix
+#' @import shiny msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
 
 
 # Define server logic required to draw a histogram
@@ -207,14 +207,14 @@ observe({
       if (!is.null(input$peptides$name)&!is.null(input$annotation$name)){
       removeNotification(id="noPeptideFile")
       if(input$input_type=="MaxQuant"){
-          ecols <- MSnbase::grepEcols(featuresDatapath(), "Intensity ", split = "\t")
+          ecols <- grepEcols(featuresDatapath(), "Intensity ", split = "\t")
 
       }
       if(input$input_type=="moFF"){
-          ecols <- MSnbase::grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
+          ecols <- grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
       }
       if(input$input_type=="mzTab"){
-          ecols <- MSnbase::grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
+          ecols <- grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
       }
       peOut <- try(readFeatures(table = featuresDatapath(), fnames = 1, ecol = ecols,
               name = "featureRaw", sep="\t"))
