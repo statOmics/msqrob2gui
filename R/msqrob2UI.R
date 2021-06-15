@@ -95,26 +95,13 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
 
             div(
             list(
+            br(),
             h4("How do I cite MSqRob?"),
-            tags$button(id="button_cite",tags$sup("[?]"))
+            h4("msqrob2 is free to use and  open source.
+            When making use of msqrob2, we would appreciate it if you could cite our two papers."),
+            h4("1. Sticker A, Goeminne L, Martens L, Clement L (2020). Robust Summarization and Inference in Proteome-wide Label-free Quantification. Molecular & Cellular Proteomics, 19(7), 1209-1219. doi: 10.1074/mcp.ra119.001624"),
+            h4("2. Goeminne L, Gevaert K, Clement L (2016). Peptide-level Robust Ridge Regression Improves Estimation, Sensitivity, and Specificity in Data-dependent Quantitative Label-free Shotgun Proteomics. Molecular & Cellular Proteomics, 15(2), 657-668. doi: 10.1074/mcp.m115.055897")    
             )
-            ),
-            hidden(helpText(id="tooltip_cite",
-            "MSqRob is free for you to use and completely open source.
-            When making use of MSqRob, we would appreciate it if you could cite our two published articles.",
-            br(),
-            span("(1) The MSqRob algorithm: ", class="bold"),
-            br(),
-            "
-            Goeminne, L. J. E., Gevaert, K., and Clement, L. (2016) Peptide-level Robust Ridge Regression Improves Estimation, Sensitivity,
-            and Specificity in Data-dependent Quantitative Label-free Shotgun Proteomics. Molecular & Cellular Proteomics 15(2), pp 657-668.",
-            br(),
-            span("(2) The MSqRob GUI tutorial article:", class="bold"),
-            br(),
-            "
-            Goeminne, L. J. E., Gevaert, K. and Clement, L. (2017).
-            Experimental design and data-analysis in label-free quantitative LC/MS proteomics:
-            A tutorial with MSqRob. Journal of Proteomics (in press).")
             )
             )
         )

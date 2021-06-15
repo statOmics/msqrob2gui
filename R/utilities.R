@@ -79,17 +79,17 @@ makeDetailPlots <- function(pe,
           pePlotDf$assay <- factor(pePlotDf$assay,
                                   levels = c("featureNorm", "summarized"))
           if (input$selColDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selColDetailPlot2]])=="factor"){
+              if(class(colData(pePlot)[[input$selColDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selColDetailPlot2]])=="character"){
               pePlotDf[,input$selColDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selColDetailPlot2]))
               }
           }
           if (input$selVertDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selVertDetailPlot2]])=="factor"){
+              if(class(colData(pePlot)[[input$selVertDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selVertDetailPlot2]])=="character"){
               pePlotDf[,input$selVertDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selVertDetailPlot2]))
               }
           }
           if (input$selHorDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selHorDetailPlot2]])=="factor"){
+              if(class(colData(pePlot)[[input$selHorDetailPlot2]])=="factor"||class(colData(pePlot)[[input$selHorDetailPlot2]])=="character"){
               pePlotDf[,input$selHorDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selHorDetailPlot2]))
               }
           }
@@ -107,7 +107,7 @@ makeDetailPlots <- function(pe,
               facet_grid(~ assay) +
               labs(title = featureName, x = "sample", y = ylab)
           if (input$selColDetailPlot2!="none") {
-              if (class(colData(pePlot)[[input$selColDetailPlot2]])=="factor") {
+              if (class(pePlotDf[[input$selColDetailPlot2]])=="factor") {
                 p2 <- ggplot(pePlotDf, aes(x = colname, y = value,fill=pePlotDf[,input$selColDetailPlot2]))
                 }
               } else {
@@ -120,7 +120,7 @@ makeDetailPlots <- function(pe,
               labs(title = featureName, x = "sample", y = ylab)
           if (input$selVertDetailPlot2!="none"|input$selHorDetailPlot2!="none"){
               if (input$selVertDetailPlot2=="none") {
-                  if (class(colData(pePlot)[[input$selHorDetailPlot2]])=="factor")
+                  if (class(pePlotDf[[input$selHorDetailPlot2]])=="factor")
                       p2 <- p2 + facet_grid(~pePlotDf[,input$selHorDetailPlot2])
                   } else {
                   if (input$selHorDetailPlot2=="none"){

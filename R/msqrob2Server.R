@@ -17,7 +17,11 @@ variables <- reactiveValues(pe=NULL)
   ###########################################
 
       anotationFileToDownload <- eventReactive(input$goAnnotation, {
-      data.frame(run = colnames(variables$pe[[1]]))
+        ecols <- grepEcols(featuresDatapath(), "Intensity ", split = "\t")
+        runs <- read.table(featuresDatapath(), header = FALSE, nrow = 1, sep = "\t",
+                           quote = "", stringsAsFactors = FALSE, comment.char = "")[ecols]
+        runs <- make.names(runs, unique = TRUE)
+        data.frame(run = runs)
       })
         output$DownloadAnnot <- downloadHandler(
             filename = function() {
@@ -30,7 +34,10 @@ variables <- reactiveValues(pe=NULL)
 
 
 
-
+        output$downloadButtonDownloadAnnot<- renderUI({
+          if(!is.null(anotationFileToDownload())) {
+            downloadButton("DownloadAnnot", "Download Annotation File")}
+        })
 
   ########################################################
   #Clear datapaths of backslashes (Needed on Windows only)
@@ -64,7 +71,7 @@ variables <- reactiveValues(pe=NULL)
   })
 
   output$selectNormalisation <- renderUI({
-    selectInput("normalisation", NULL, c("quantiles","vsn","quantiles.robust", "center.median", "center.mean", "div.mean","div.median","diff.median" ,"max", "sum", "none"), selected=selNormalisation(), width = '100%') #"loess.affy" and "loess.pairs" left out on purpose because they remove everything with at least 1 NA!
+    selectInput("normalisation", NULL, c("center.median", "quantiles","vsn","quantiles.robust",  "center.mean", "div.mean","div.median","diff.median" ,"max", "sum", "none"), selected=selNormalisation(), width = '100%') #"loess.affy" and "loess.pairs" left out on purpose because they remove everything with at least 1 NA!
     })
 
   ########################################
@@ -265,7 +272,9 @@ observe({
         i <- "featureLog"
         } else {i <- "featureRaw"}
 
-      peOut <- variables$pe[,,which(names(variables$pe)%in%c("featureRaw","featureLog"))]
+      peOut <- variables$pe[,,which(names(variables$pe)%in%c("featureRaw"))]
+      if (input$logtransform) peOut <- logTransform(peOut, base = 2,i="featureRaw",name="featureLog")
+      
       if(input$input_type=="MaxQuant"){
       for (j in input$selectedFilters)
          peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
@@ -523,7 +532,7 @@ observe({
           peOut <- variables$pe
           peOut <- try(msqrob(object=peOut,i="summarized", formula=stats::as.formula(input$designformula),overwrite=TRUE, ridge=input$doRidge==1))
 
-          if (class(peOut)=="Features") {
+          if (class(peOut)=="QFeatures") {
           variables$pe <- peOut
           }
           remove_modal_spinner()
@@ -583,7 +592,7 @@ observe({
    })
 
 output$table<-DT::renderDT(
-  formatSignif(datatable(data()[,1:6]),columns=1:ncol(data()),digits=3)
+  formatSignif(datatable(data()[,1:6]),columns=1:6,digits=3)
   )
 
 #Set table Proxy so as to reduce the table according to the zoom in the plot and to highlight points
