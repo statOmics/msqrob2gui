@@ -397,7 +397,20 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               shiny::textInput("designformula", label=NULL,"~1"),
               hidden(
                 helpText(id="tooltip_formula","
-                  Make Formula"
+     Models for are specified symbolically. The formula is build using the names of the design variables.
+     A typical model has the form ‘ ~ terms’ where ‘terms’ is a series of terms which specifies a
+     linear model.  
+     A terms specification of the form ‘variable1’ will model the preprocessed intensities in function of the design variable ‘variable1’. 
+     If ‘variable1’ is a continuous variable this will result in a linear model with an intercept and a slope for the variable treatment. 
+     If ‘variable1’ is a factor variable it will result in a linear model with an intercept for the reference class and slope parameters 
+     with the interpretation of the average difference between the preprocessed intensity of the current class and the reference class.  
+     A terms specification of the form ‘variable1 + variable2’ indicates the inclusion of the main effects (terms for all slope terms) for ‘variable1’ and ‘variable2’.
+     A specification of the form ‘variable1:variable2’ indicates the set of
+     terms obtained by taking the interactions of all terms in ‘variable1’
+     with all terms in ‘variable2’, i.e. the effect of ‘variable1’ can be altered according to the value of ‘variable2’.  
+     The specification ‘variable1*variable’
+     indicates the _cross_ of ‘variable1’ and ‘variable2’.  This is the same
+     as ‘variable1 + variable2 + variable1:variable2’. "
                   )
                 )
               )
@@ -411,7 +424,8 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
                 helpText(id="tooltip_doRidge","
                   When \"Yes\" is selected the fixed effects are estimated using ridge regression. This shrinks the estimates with low evidence for differential abundance towards zero and improves the performance.
                   But, the method is computationally much more demanding.
-                  We therefore suggest to switch ridge regression off \"No\" until you want to perform the final analysis. "
+                  The method mainly seems to improve in experiments with multiple groups
+                  We therefore suggest to switch ridge regression off \"No\". "
                   )
                 )
               )
@@ -444,7 +458,16 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               shiny::textInput("contrast", label=NULL,""),
               hidden(
                 helpText(id="tooltip_contrast",
-                  "Formulate null hypothesis in terms of a (linear combination) of the model parameters."
+                  "Formulate null hypothesis in terms of a (linear combination) of the model parameters.
+                  The name of the model parameters (intercept and slopes) are indicated above the Null Hypothesis Field. 
+                  They are also included in the Model tab in the plot for Visualize Design.
+                  In the Visualize Design plot every group mean of the experimental design is given. 
+                  A contrast is the difference between group means, which typically is a linear combination of the slope terms in the linear model. 
+                  Suppose for instance that the model consists of one Design Variable named ‘treatment’, which consist of two levels stimulus A or stimulus B, incoded with a letter ‘A’ or ‘B’, respectively.
+                  In R the stimulus A will be the reference class and its group mean will be modelled with the intercept of the linear model: ‘(intercept)’. 
+                  The group mean for stimulus B will then be modelled using the sum of the intercept and its corresponding slope named ‘treatmentB’: ‘(intercept)+treatmentB’.
+                  If the intensities are log2 transformed, the average log2 fold change between stimulus B and stimulus A will then be equalt to the slope: ‘treatmentB’. 
+                  Assessing if the log2 FC is equal to 0, involves nulhypothesis ‘treatmentB = 0’. Note, that the quotes have to be removed when inputting this in the field Null Hypothesis."
                   )
                 )
               )
@@ -489,7 +512,8 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               )
             ),
 
-          fluidRow(column(width = 12, h3("Results table"),DT::dataTableOutput('table')))
+          fluidRow(column(width = 12, h3("Results table"),DT::dataTableOutput('table'))),
+          fluidRow(column(width = 12, plotOutput("boxplotFC", height = 200)))
         )
       )
     )

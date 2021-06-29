@@ -550,10 +550,23 @@ observe({
       return(data)
       }
   )
-
+  
+  ###boxplotFC
+  makeBoxplotFC<-function(dataset)
+  {
+    s = input$table_rows_all
+    boxplot(dataset()[s,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset()[["logFC"]],na.rm=TRUE))
+  }
+  
+  output$boxplotFC <- renderPlot(makeBoxplotFC(data))
+  
+  ###Volcanoplot 
   output$volcanoPlot <- renderPlot(
       makeVolcanoPlot(dataAll(),clickInfo,input,ranges)
   )
+  
+  
+  
 
     #When a double-click happens, check if there's a brush on the plot.
     #If so, zoom to the brush bounds; if not, reset the zoom.
