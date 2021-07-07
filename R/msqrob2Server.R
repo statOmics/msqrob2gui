@@ -737,7 +737,9 @@ observeEvent(input$remove_all_selection, {
     selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
 
     output$report <- downloadHandler(
-      filename = paste0("report-",input$project_name, gsub(" |:","-",Sys.time()),".zip"),
+      filename = function() {
+        paste0("report-",input$project_name, gsub(" |:","-",Sys.time()),".zip")
+      },
       content = function(file) {
         file.copy(from = featuresDatapath(), to = "featuresFile.txt", overwrite = TRUE)
         file.copy(from = annotationDatapath(), to = "annotationFile.xlsx", overwrite = TRUE)
