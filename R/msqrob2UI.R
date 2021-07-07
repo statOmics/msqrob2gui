@@ -536,7 +536,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
         )
       )
     ),
-    tabPanel("generate report",
+    tabPanel("Report",
       sidebarLayout(
         sidebarPanel(
           div(
