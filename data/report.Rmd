@@ -32,8 +32,6 @@ library(tidyverse)
 library(limma)
 library(QFeatures)
 library(msqrob2)
-library(plotly)
-library(gridExtra)
 ```
 
 # Input parameters copied from msqrob2gui
