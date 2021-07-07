@@ -418,7 +418,7 @@ observe({
           if (input$summarisation=="sum") fun <- base::colSums
           if (input$summarisation=="mean") fun <- base::colMeans
           if (input$summarisation=="median") fun <- matrixStats::colMedians
-          if (input$summarisation=="medpolish") fun <- stats::medpolish
+          if (input$summarisation=="medpolish") fun <- MsCoreUtils::medianPolish
           hlpNames<-which(names(variables$pe) %in% c("featureRaw","featureLog","featureNorm"))
           peOut <- variables$pe[,,hlpNames]
           if (input$summarisation!="none"){

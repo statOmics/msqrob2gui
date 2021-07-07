@@ -305,7 +305,7 @@ if (sumMethod!="none")
   if (sumMethod=="sum") fun <- base::colSums
   if (sumMethod=="mean") fun <- base::colMeans
   if (sumMethod=="median") fun <- matrixStats::colMedians
-  if (sumMethod=="medpolish") fun <- stats::medpolish
+  if (sumMethod=="medpolish") fun <- MsCoreUtils::medianPolish
 
   pe <- aggregateFeatures(pe,
   i = currentAssay,
