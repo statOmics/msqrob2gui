@@ -105,7 +105,9 @@ makeDetailPlots <- function(pe,
               geom_line() +
               geom_point() +
               facet_grid(~ assay) +
-              labs(title = featureName, x = "sample", y = ylab)
+              labs(title = featureName, x = "sample", y = ylab) + 
+              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) 
+            
           if (input$selColDetailPlot2!="none") {
               if (class(pePlotDf[[input$selColDetailPlot2]])=="factor") {
                 p2 <- ggplot(pePlotDf, aes(x = colname, y = value,fill=pePlotDf[,input$selColDetailPlot2]))
@@ -117,16 +119,19 @@ makeDetailPlots <- function(pe,
               geom_boxplot(outlier.shape = NA) +
               geom_point(position = position_jitter(width = .1), aes(shape = rowname)) +
               scale_shape_manual(values = 1:nrow(pePlotDf)) +
-              labs(title = featureName, x = "sample", y = ylab)
+              labs(title = featureName, x = "sample", y = ylab) +
+              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
+              facet_grid(~ assay)
+            
           if (input$selVertDetailPlot2!="none"|input$selHorDetailPlot2!="none"){
               if (input$selVertDetailPlot2=="none") {
                   if (class(pePlotDf[[input$selHorDetailPlot2]])=="factor")
-                      p2 <- p2 + facet_grid(~pePlotDf[,input$selHorDetailPlot2])
+                      p2 <- p2 + facet_grid(~assay+pePlotDf[,input$selHorDetailPlot2])
                   } else {
                   if (input$selHorDetailPlot2=="none"){
-                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~.)
+                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~assay)
                       } else {
-                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~pePlotDf[,input$selHorDetailPlot2])
+                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~assay+pePlotDf[,input$selHorDetailPlot2])
                       }
                   }
           }

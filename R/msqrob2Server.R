@@ -3,7 +3,7 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @import shiny msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
+#' @import shiny shinymeta msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
 
 
 # Define server logic required to draw a histogram
@@ -43,9 +43,8 @@ variables <- reactiveValues(pe=NULL)
   #Clear datapaths of backslashes (Needed on Windows only)
   ########################################################
 
-  featuresDatapath <- reactive({getDataPath(input$peptides$datapath)})
+  featuresDatapath <- metaReactive({getDataPath(..(input$peptides$datapath))})
   annotationDatapath <- reactive({getDataPath(input$annotation$datapath)})
-
   ########################################
   #Set Filter option
   ########################################
@@ -113,7 +112,11 @@ observe({
                    shinyjs::toggle(id = "tooltip_smallestUniqueGroups", anim = TRUE))
   shinyjs::onclick("button_minIdentified",
                    shinyjs::toggle(id = "tooltip_minIdentified", anim = TRUE))
-  shinyjs::onclick("button_filter",
+  shinyjs::onclick("button_maxPlot",
+                   shinyjs::toggle(id = "tooltip_maxPlot", anim = TRUE))
+  shinyjs::onclick("button_render",
+                   shinyjs::toggle(id = "tooltip_render", anim = TRUE))
+     shinyjs::onclick("button_filter",
                    shinyjs::toggle(id = "tooltip_filter", anim = TRUE))
   shinyjs::onclick("button_selColPlotNorm",
                    shinyjs::toggle(id = "tooltip_selColPlotNorm", anim = TRUE))
@@ -161,7 +164,6 @@ observe({
 
   output$selectProteins <- renderUI({
     selectInput("proteins", label=NULL, filterOptions(), multiple=FALSE, selected=selectedProteins() )
-  #!Be careful with "selectizeInput" -> fixed and random all of a sudden might not work anymore...
   })
 
   ###Drop down menu for plot normalization Plot###
@@ -276,8 +278,11 @@ observe({
       if (input$logtransform) peOut <- logTransform(peOut, base = 2,i="featureRaw",name="featureLog")
       
       if(input$input_type=="MaxQuant"){
-      for (j in input$selectedFilters)
-         peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
+      for (j in selectedFilter())
+        {
+          rowData(peOut[[i]])[is.na(rowData(peOut[[i]])[,j]),j] <- ""
+          peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
+        }
       }
 
       if (input$smallestUniqueGroups) peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[selectedProteins()]] %in% smallestUniqueGroups(rowData(peOut[[i]])[[selectedProteins()]]),]
@@ -712,6 +717,69 @@ observeEvent(input$remove_all_selection, {
       shinyjs::onclick("button_selVertDetailPlot2",
                      shinyjs::toggle(id = "tooltip_selVertDetailPlot2", anim = TRUE))
     })
+    
+### use metaReactive to write options to file 
+    
+    groupBy <- metaReactive({..(selectedProteins())}, varname ="groupBy")
+    logTrans <- metaReactive({..(input$logtransform)}, varname = "logTrans")
+    removeRazor <- metaReactive({..(input$smallestUniqueGroups)}, varname ="removeRazor")
+    filterColumns <- metaReactive({..(selectedFilter())}, varname ="filterColumns")
+    minObsFeat <- metaReactive({..(input$minIdentified)}, varname ="minObsFeat")
+    normMethod <- metaReactive({..(input$normalisation)}, varname = "normMethod")
+    sumMethod <- metaReactive({..(input$summarisation)}, varname ="sumMethod")
+    form <- metaReactive({..(input$designformula)}, varname = "form")
+    doRidge <- metaReactive({..(input$doRidge==1)}, varname = "doRidge")
+    contrast <- metaReactive({..(input$contrast)}, , varname = "contrast")
+    sigLevel <- metaReactive({..(input$alpha)}, varname = "sigLevel")
+    maxPlot <- metaReactive({..(input$maxPlot)}, varname = "maxPlot")
+    selHorPlot <- metaReactive({..(input$selHorDetailPlot2)}, varname = "selHorPlot")
+    selVertPlot <- metaReactive({..(input$selVertDetailPlot2)}, varname ="selVertPlot")
+    selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
+
+    output$report <- downloadHandler(
+      filename = paste0("report-",input$project_name, gsub(" |:","-",Sys.time()),".zip"),
+      content = function(file) {
+        file.copy(from = featuresDatapath(), to = "featuresFile.txt", overwrite = TRUE)
+        file.copy(from = annotationDatapath(), to = "annotationFile.xlsx", overwrite = TRUE)
+        input <- expandChain(
+          quote({
+                featuresFile <- "featuresFile.txt"
+                annotationFile <- "annotationFile.xlsx"
+                }))
+        preprocessing <- expandChain(
+          invisible(groupBy()),
+          invisible(logTrans()),
+          invisible(removeRazor()),
+          invisible(filterColumns()),
+          invisible(minObsFeat()),
+          invisible(normMethod())
+          )
+        summarization <- expandChain(invisible(sumMethod()))
+        model <- expandChain(
+          invisible(form()),
+          invisible(doRidge())
+          )
+        inference <- expandChain(
+          invisible(contrast()),
+          invisible(sigLevel()))
+        report <- expandChain(
+          invisible(maxPlot())
+          )
+        buildRmdBundle(
+          system.file("data/report.Rmd",package="msqrob2gui"),
+          file,
+          list(
+                      input = input,
+                      preprocessing = preprocessing,
+                      summarization = summarization,
+                      model = model,
+                      inference = inference,
+                      report = report
+                      ),
+          render=TRUE,
+          include_files = c("featuresFile.txt",'annotationFile.xlsx')
+        )
+      })
 
   #Stop the App when closing the browser or ending the session
   session$onSessionEnded(stopApp)

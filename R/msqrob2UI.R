@@ -1,5 +1,5 @@
 #' Shiny app server object
-#' @import shiny DT shinyjs shinythemes shinybusy
+#' @import shiny shinymeta DT shinyjs shinythemes shinybusy
 # create the shiny application user interface
 msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
     shinyjs::useShinyjs(),
@@ -534,6 +534,33 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
         h4("Select one feature in the volcano plot or in the table of the inference tab to visualize the expression values"),
         uiOutput("detailPlots")
         )
+      )
+    ),
+    tabPanel("generate report",
+      sidebarLayout(
+        sidebarPanel(
+          div(
+            list(
+              tags$label("Number of significant features for which you want to have detail plots", `for`="maxPlot"),
+              tags$button(id="button_maxPlot", tags$sup("[?]")),
+              numericInput("maxPlot", label=NULL, value=10, min = 1, max = NA, step = 1, width = '100%'),
+              hidden(
+                helpText(id="tooltip_maxPlot","Number of significant features for which you want to have detail plots in the generated report
+      	                  ")
+              )
+            )),
+#          div(
+#            list(
+#              checkboxInput("Render report", label="render", value=TRUE),
+#              tags$button(id="button_render", tags$sup("[?]")),
+#              hidden(
+#                helpText(id="tooltip_render","If you select render, a reproducible markdown script and rendered html report will be generated. Note, that this can take a while because all data analysis steps have to be executed again. If unselected, only an Rmarkdown file is generated that can be rendered in rstudio at any time.  
+#      	                  ")
+#              )
+#            )),
+          downloadButton("report", "Generate report")
+        ),
+        mainPanel()
       )
     )
 #close navbar, page, etc.

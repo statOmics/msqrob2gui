@@ -1,6 +1,6 @@
 Package: msqrob2gui
 Title: Shiny Apps for Robust statistical inference for quantitative LC-MS proteomics
-Version: 0.0.1
+Version: 0.0.9
 Authors@R:
     c(
       person(given = "Lieven",
@@ -9,12 +9,11 @@ Authors@R:
              email = "lieven.clement@ugent.be",
              comment = c(ORCID = "0000-0002-9050-4370")))
 Description: Shiny Apps building on the msqrob2 package for robust statistical inference for quantitative proteomics
-   using the Feature infrastructure for quantitative mass spectrometry
+   using the QFeature infrastructure for quantitative mass spectrometry
    data.
-Depends: R (>= 4.1), msqrob2, shiny, shinyjs, shinythemes, DT, shinybusy, ExploreModelMatrix, grDevices, limma, graphics, ggplot2, openxlsx 
+Depends: R (>= 4.1), msqrob2, shiny, shinyjs, shinythemes, shinymeta, DT, shinybusy, ExploreModelMatrix, grDevices, limma, graphics, ggplot2, openxlsx 
 Imports:
 Remotes:
-   RforMassSpectrometry/Features
 License: Artistic-2.0
 Collate: utilities.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R
 Encoding: UTF-8
