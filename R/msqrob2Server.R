@@ -3,7 +3,7 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @import shiny shinymeta msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
+#' @import shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
 
 
 # Define server logic required to draw a histogram
