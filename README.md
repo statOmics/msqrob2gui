@@ -29,8 +29,5 @@ launchMsqrob2App()
 
 ## Use App
 
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/F5d0E-U4rOM"
-frameborder="0"
-style="display: block; margin: auto;"
-allow="autoplay; encrypted-media" allowfullscreen></iframe>   
+An instruction video can be found on https://youtu.be/F5d0E-U4rOM
+
