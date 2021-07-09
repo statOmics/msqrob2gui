@@ -11,6 +11,9 @@ The `msqrob2gui` package implements shiny apps for Bioconductor package [`msqrob
 ## Installation
 
 ```{r}
+if(!requireNamespace("BiocManager", quietly = TRUE)) {
+ install.packages("BiocManager")
+}
 BiocManager::install("msqrob2")
 BiocManager::install("statomics/msqrob2gui")
 ```
@@ -23,3 +26,11 @@ The app can be launched by loading the package and running the `launchMsqrob2App
 library(msqrob2gui)
 launchMsqrob2App()
 ```
+
+## Use App
+
+<iframe width="560" height="315"
+src="https://www.youtube.com/embed/F5d0E-U4rOM"
+frameborder="0"
+style="display: block; margin: auto;"
+allow="autoplay; encrypted-media" allowfullscreen></iframe>   

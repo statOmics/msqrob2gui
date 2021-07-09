@@ -348,7 +348,7 @@ We can also explore the design of the model that we specified using the the pack
 ```{r}
 library(ExploreModelMatrix)
 visDesign <- VisualizeDesign(colData(pe),form)
-visDesign$plotlist[[1]]
+visDesign$plotlist
 ```
 
 The following contrast will be assessed for each summarized feature:

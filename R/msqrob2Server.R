@@ -738,7 +738,7 @@ observeEvent(input$remove_all_selection, {
 
     output$report <- downloadHandler(
       filename = function() {
-        paste0("report-",input$project_name, gsub(" |:","-",Sys.time()),".zip")
+        paste0(input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")
       },
       content = function(file) {
         file.copy(from = featuresDatapath(), to = "featuresFile.txt", overwrite = TRUE)
