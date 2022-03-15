@@ -206,9 +206,17 @@ removeRazor
 ```
 
 ```{r}
-if (removeRazor) pe[[currentAssay]] <-
- pe[[currentAssay]][rowData(pe[[currentAssay]])[,groupBy]
- %in% smallestUniqueGroups(rowData(pe[[currentAssay]])[,groupBy]),]
+if (removeRazor) 
+{
+  formFiltRazor <-  formula(
+    paste0("~",
+           groupBy,
+           " %in% smallestUniqueGroups(rowData(pe[[currentAssay]])[[\"",
+           groupBy,
+           "\"]])")
+      )         
+    pe <- filterFeatures(pe, formFiltRazor)
+}
 ```
 
 2. Filter
@@ -223,8 +231,8 @@ filterColumns
 if (length(filterColumns)>0)
   for (j in filterColumns)
   {
-      rowData(pe[[currentAssay]])[is.na(rowData(pe[[currentAssay]])[,j]),j] <-""
-      pe[[currentAssay]] <- pe[[currentAssay]][rowData(pe[[currentAssay]])[,j] != "+", ]
+      rowData(pe[[currentAssay]])[is.na(rowData(pe[[currentAssay]])[,j]),j] <- ""
+      pe <- filterFeatures(pe,formula(paste0("~",j,"!=\"+\"")))
   }
 ```
 
@@ -236,8 +244,7 @@ minObsFeat
 ```
 
 ```{r}
-pe[[currentAssay]] <- pe[[currentAssay]][rowData(pe[[currentAssay]])$nNonZero >= minObsFeat, ]
-nrow(pe[[currentAssay]])
+pe <- filterFeatures(pe,~ nNonZero >= minObsFeat)
 ```
 
 We keep `r nrow(pe[[currentAssay]])` features upon filtering.

@@ -3,7 +3,7 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @import tidyverse shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx 
+#' @import tidyverse shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx
 
 
 # Define server logic required to draw a histogram
@@ -276,18 +276,23 @@ observe({
 
       peOut <- variables$pe[,,which(names(variables$pe)%in%c("featureRaw"))]
       if (input$logtransform) peOut <- logTransform(peOut, base = 2,i="featureRaw",name="featureLog")
-      
+
       if(input$input_type=="MaxQuant"){
       for (j in selectedFilter())
         {
           rowData(peOut[[i]])[is.na(rowData(peOut[[i]])[,j]),j] <- ""
-          peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
+          peOut <- filterFeatures(peOut,formula(paste0("~",j,"!=\"+\"")))
+          #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
         }
       }
 
-      if (input$smallestUniqueGroups) peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[selectedProteins()]] %in% smallestUniqueGroups(rowData(peOut[[i]])[[selectedProteins()]]),]
-
-      peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])$nNonZero >= input$minIdentified, ]
+      #if (input$smallestUniqueGroups) peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[selectedProteins()]] %in% smallestUniqueGroups(rowData(peOut[[i]])[[selectedProteins()]]),]
+      if (input$smallestUniqueGroups) {
+        protVar <- selectedProteins()
+          peOut <- filterFeatures(peOut, formula(paste0("~",protVar," %in% smallestUniqueGroups(rowData(peOut[[i]])[[\"",protVar,"\"]])")))
+      }
+      #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])$nNonZero >= input$minIdentified, ]
+      peOut <- filterFeatures(peOut,~ nNonZero >= input$minIdentified)
       if (input$normalisation=="none"){
           peOut <- addAssay(peOut,peOut[[i]],"featureNorm")
       } else{
@@ -555,23 +560,23 @@ observe({
       return(data)
       }
   )
-  
+
   ###boxplotFC
   makeBoxplotFC<-function(dataset)
   {
     s = input$table_rows_all
     boxplot(dataset()[s,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset()[["logFC"]],na.rm=TRUE))
   }
-  
+
   output$boxplotFC <- renderPlot(makeBoxplotFC(data))
-  
-  ###Volcanoplot 
+
+  ###Volcanoplot
   output$volcanoPlot <- renderPlot(
       makeVolcanoPlot(dataAll(),clickInfo,input,ranges)
   )
-  
-  
-  
+
+
+
 
     #When a double-click happens, check if there's a brush on the plot.
     #If so, zoom to the brush bounds; if not, reset the zoom.
@@ -717,9 +722,9 @@ observeEvent(input$remove_all_selection, {
       shinyjs::onclick("button_selVertDetailPlot2",
                      shinyjs::toggle(id = "tooltip_selVertDetailPlot2", anim = TRUE))
     })
-    
-### use metaReactive to write options to file 
-    
+
+### use metaReactive to write options to file
+
     groupBy <- metaReactive({..(selectedProteins())}, varname ="groupBy")
     logTrans <- metaReactive({..(input$logtransform)}, varname = "logTrans")
     removeRazor <- metaReactive({..(input$smallestUniqueGroups)}, varname ="removeRazor")
