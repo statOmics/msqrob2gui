@@ -281,18 +281,23 @@ observe({
       for (j in selectedFilter())
         {
           rowData(peOut[[i]])[is.na(rowData(peOut[[i]])[,j]),j] <- ""
-          peOut <- filterFeatures(peOut,formula(paste0("~",j,"!=\"+\"")))
-          #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
+          #peOut <- filterFeatures(peOut,formula(paste0("~",j,"!=\"+\"")))
+          peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[j]]!= "+", ]
         }
       }
 
-      #if (input$smallestUniqueGroups) peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[selectedProteins()]] %in% smallestUniqueGroups(rowData(peOut[[i]])[[selectedProteins()]]),]
       if (input$smallestUniqueGroups) {
-        protVar <- selectedProteins()
-          peOut <- filterFeatures(peOut, formula(paste0("~",protVar," %in% smallestUniqueGroups(rowData(peOut[[i]])[[\"",protVar,"\"]])")))
+        peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])[[selectedProteins()]] %in% smallestUniqueGroups(rowData(peOut[[i]])[[selectedProteins()]]),]
       }
+      #if (input$smallestUniqueGroups) {
+      #  protVar <- selectedProteins()
+      #    peOut <- filterFeatures(peOut, formula(paste0("~",protVar," %in% smallestUniqueGroups(rowData(peOut[[i]])[[\"",protVar,"\"]])")))
+      #}
+      
       #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])$nNonZero >= input$minIdentified, ]
-      peOut <- filterFeatures(peOut,~ nNonZero >= input$minIdentified)
+      #temporary fix
+      filter_variable <- input$minIdentified
+      peOut <- filterFeatures(peOut,~ nNonZero >= filter_variable)
       if (input$normalisation=="none"){
           peOut <- addAssay(peOut,peOut[[i]],"featureNorm")
       } else{
