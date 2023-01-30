@@ -1,5 +1,6 @@
 #' Shiny app server object
 #' @import shiny shinymeta DT shinyjs shinythemes shinybusy
+
 # create the shiny application user interface
 msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
     shinyjs::useShinyjs(),
@@ -435,7 +436,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
           ),
 
         mainPanel(
-          fluidRow(column(width = 12, h3("Design Variables"),DT::dataTableOutput('annotationDataMatrix'))),
+          fluidRow(column(width = 12, h3("Design Variables"),DT::DTOutput('annotationDataMatrix'))),
           h3("Visualize Design"),
           uiOutput('fitted_values_plot')
           )
@@ -512,7 +513,7 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
               )
             ),
 
-          fluidRow(column(width = 12, h3("Results table"),DT::dataTableOutput('table'))),
+          fluidRow(column(width = 12, h3("Results table"),DT::DTOutput('table'))),
           fluidRow(column(width = 12, plotOutput("boxplotFC", height = 200)))
         )
       )

@@ -295,7 +295,7 @@ observe({
       #}
       
       #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])$nNonZero >= input$minIdentified, ]
-      #temporary fix
+      #temporary fix as the filterfeatures function is not working correctly due to the shiny input objects
       filter_variable <- input$minIdentified
       peOut <- filterFeatures(peOut,~ nNonZero >= filter_variable)
       if (input$normalisation=="none"){
@@ -502,7 +502,15 @@ observe({
       })
 
   visDesign <- reactive({
-      out <- VisualizeDesign(colData(variables$pe),input$designformula)
+    
+      #If the formula contains a random effect, remove it in order to use VisualizeDesign
+      if (any(grepl("\\|",attr(terms(as.formula(input$designformula)), "term.labels")))){
+        out <- VisualizeDesign(colData(variables$pe),update(as.formula(input$designformula), as.formula(paste("~. -",paste0("(",attr(terms(as.formula(input$designformula)), "term.labels")[grepl("\\|", attr(terms(as.formula(input$designformula)), "term.labels"))], ")")))))
+        #input$designformula <- update(input$designformula, as.formula(paste("~. -",paste0("(",attr(terms(designformula), "term.labels")[grepl("\\|", attr(terms(designformula), "term.labels"))], ")"))))
+      } else {
+        out <- VisualizeDesign(colData(variables$pe),input$designformula)
+      }
+    
       rank <- qr(out$designmatrix)$rank
       if (rank==nrow(out$designmatrix)) {
         showNotification(paste0("The model is overparameterized. ",
@@ -544,6 +552,7 @@ observe({
             color = "#112446",
             text = "Summarising data..."
             )
+        
           peOut <- variables$pe
           peOut <- try(msqrob(object=peOut,i="summarized", formula=stats::as.formula(input$designformula),overwrite=TRUE, ridge=input$doRidge==1))
 
@@ -552,15 +561,26 @@ observe({
           }
           remove_modal_spinner()
       })
-      output$annotationDataMatrix <- DT::renderDataTable(as.data.frame(colData(variables$pe)))
+      output$annotationDataMatrix <- DT::renderDT(as.data.frame(colData(variables$pe)))
   ###########
   #Inference tab
   ###########
   ranges <- reactiveValues(x = NULL, y = NULL)
+  
 
-  output$modelParams <- renderUI({paste(colnames(visDesign()[[3]]),collapse=" \n")})
+  
   dataAll <- reactive({
-      data <- topFeatures(rowData(variables$pe[["summarized"]])$msqrobModels,makeContrast(input$contrast,parameterNames=colnames(visDesign()[[3]])))
+    if(input$doRidge==1 ){
+      #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
+      parameter_names <- paste0("ridge",colnames(visDesign()[[3]]))
+      parameter_names <- gsub("ridge(Intercept)", "(Intercept)",parameter_names)
+      output$modelParams <- renderUI({paste(parameter_names,collapse=" \n")})
+    } else {
+      parameter_names <- colnames(visDesign()[[3]])
+      output$modelParams <- renderUI({paste(parameter_names,collapse=" \n")})  
+    }
+    
+    data <- topFeatures(rowData(variables$pe[["summarized"]])$msqrobModels,makeContrast(input$contrast,parameterNames= parameter_names))
       data$minusLog10Pval <- - log10(data$pval)
       return(data)
       }
@@ -745,7 +765,9 @@ observeEvent(input$remove_all_selection, {
     selHorPlot <- metaReactive({..(input$selHorDetailPlot2)}, varname = "selHorPlot")
     selVertPlot <- metaReactive({..(input$selVertDetailPlot2)}, varname ="selVertPlot")
     selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
-
+    
+    
+    
     output$report <- downloadHandler(
       filename = function() {
         paste0(input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")
