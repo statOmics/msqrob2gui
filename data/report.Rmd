@@ -354,7 +354,13 @@ We can also explore the design of the model that we specified using the the pack
 
 ```{r}
 library(ExploreModelMatrix)
-visDesign <- VisualizeDesign(colData(pe),form)
+
+if (any(grepl("\\|",attr(terms(as.formula(form)), "term.labels")))){
+        visDesign <- VisualizeDesign(colData(pe),update(as.formula(form), as.formula(paste("~. -",paste0("(",attr(terms(as.formula(form)), "term.labels")[grepl("\\|", attr(terms(as.formula(form)), "term.labels"))], ")")))))
+} else {
+        visDesign <- VisualizeDesign(colData(pe),form)
+}
+
 visDesign$plotlist
 ```
 
@@ -365,10 +371,20 @@ contrast
 ```
 
 ```{r}
+
+if(doRidge==1 ){
+    #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
+    parameter_names <- paste0("ridge",colnames(visDesign[[3]]))
+    parameter_names <- gsub("ridge(Intercept)", "(Intercept)",parameter_names)
+} else {
+    parameter_names <- colnames(visDesign[[3]])
+}
+
 L <- makeContrast(
   contrast, 
-  parameterNames = colnames(visDesign[[3]])
+  parameterNames = parameter_names
   )
+
 pe <- hypothesisTest(object = pe, i = currentAssay, contrast = L)
 ```
 
