@@ -1,9 +1,9 @@
 # GUI implementation for the msqrob2 package for differentially expression analysis in mass spectrometry using the Features infrastructure
 
-The `[`msqrob2`](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html) Bioconductor package ports and modernises the method presented in
-[`MSqRob`](https://github.com/statOmics/MSqRob) and
-[`MSqRobSum`](https://github.com/statOmics/MSqRobSum) to use the
-[`QFeatures`](https://www.bioconductor.org/packages/release/bioc/html/QFeatures.html)
+The [msqrob2](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html) Bioconductor package ports and modernises the method presented in
+[MSqRob](https://github.com/statOmics/MSqRob) and
+[MSqRobSum](https://github.com/statOmics/MSqRobSum) to use the
+[QFeatures](https://www.bioconductor.org/packages/release/bioc/html/QFeatures.html)
 class infrastructure.
 
 The `msqrob2gui` package implements shiny apps for Bioconductor package [`msqrob2`](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html).
