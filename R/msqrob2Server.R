@@ -3,7 +3,7 @@
 #' @param input provided by shiny
 #' @param output provided by shiny
 #' @param session provided by shiny
-#' @import tidyverse shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx
+#' @import tidyverse shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx reshape2
 
 
 # Define server logic required to draw a histogram
@@ -225,7 +225,7 @@ observe({
       if(input$input_type=="mzTab"){
           ecols <- grepEcols(featuresDatapath(), "sumIntensity_", split = "\t")
       }
-      peOut <- try(readQFeatures(table = featuresDatapath(), fnames = 1, ecol = ecols,
+      peOut <- try(readQFeatures(assayData = read.delim(featuresDatapath()), fnames = 1, ecol = ecols,
               name = "featureRaw", sep="\t"))
       if (class(peOut)[1]=="try-error"|length(ecols)<1) {
           showNotification("Upload proper peptide file that is compliant with the input type",id="noProperPeptideFile",type="error",duration=NULL,closeButton=FALSE)
@@ -293,7 +293,7 @@ observe({
       #  protVar <- selectedProteins()
       #    peOut <- filterFeatures(peOut, formula(paste0("~",protVar," %in% smallestUniqueGroups(rowData(peOut[[i]])[[\"",protVar,"\"]])")))
       #}
-      
+
       #peOut[[i]] <- peOut[[i]][rowData(peOut[[i]])$nNonZero >= input$minIdentified, ]
       #temporary fix as the filterfeatures function is not working correctly due to the shiny input objects
       filter_variable <- input$minIdentified
@@ -502,7 +502,7 @@ observe({
       })
 
   visDesign <- reactive({
-    
+
       #If the formula contains a random effect, remove it in order to use VisualizeDesign
       if (any(grepl("\\|",attr(terms(as.formula(input$designformula)), "term.labels")))){
         out <- VisualizeDesign(colData(variables$pe),update(as.formula(input$designformula), as.formula(paste("~. -",paste0("(",attr(terms(as.formula(input$designformula)), "term.labels")[grepl("\\|", attr(terms(as.formula(input$designformula)), "term.labels"))], ")")))))
@@ -510,7 +510,7 @@ observe({
       } else {
         out <- VisualizeDesign(colData(variables$pe),input$designformula)
       }
-    
+
       rank <- qr(out$designmatrix)$rank
       if (rank==nrow(out$designmatrix)) {
         showNotification(paste0("The model is overparameterized. ",
@@ -552,7 +552,7 @@ observe({
             color = "#112446",
             text = "Summarising data..."
             )
-        
+
           peOut <- variables$pe
           peOut <- try(msqrob(object=peOut,i="summarized", formula=stats::as.formula(input$designformula),overwrite=TRUE, ridge=input$doRidge==1))
 
@@ -566,9 +566,9 @@ observe({
   #Inference tab
   ###########
   ranges <- reactiveValues(x = NULL, y = NULL)
-  
 
-  
+
+
   dataAll <- reactive({
     if(input$doRidge==1 ){
       #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
@@ -577,10 +577,10 @@ observe({
       output$modelParams <- renderUI({paste(parameter_names,collapse=" \n")})
     } else {
       parameter_names <- colnames(visDesign()[[3]])
-      output$modelParams <- renderUI({paste(parameter_names,collapse=" \n")})  
+      output$modelParams <- renderUI({paste(parameter_names,collapse=" \n")})
     }
-    
-    data <- topFeatures(rowData(variables$pe[["summarized"]])$msqrobModels,makeContrast(input$contrast,parameterNames= parameter_names))
+
+    data <- topFeatures(rowData(variables$pe[["summarized"]])$msqrobModels,msqrob2::makeContrast(input$contrast,parameterNames= parameter_names)[,1])
       data$minusLog10Pval <- - log10(data$pval)
       return(data)
       }
@@ -765,9 +765,9 @@ observeEvent(input$remove_all_selection, {
     selHorPlot <- metaReactive({..(input$selHorDetailPlot2)}, varname = "selHorPlot")
     selVertPlot <- metaReactive({..(input$selVertDetailPlot2)}, varname ="selVertPlot")
     selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
-    
-    
-    
+
+
+
     output$report <- downloadHandler(
       filename = function() {
         paste0(input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")

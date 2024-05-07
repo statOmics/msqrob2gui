@@ -110,14 +110,16 @@ your raw Feature-level intensities.
 To import the data we use the `QFeatures` package.
 
 ```{r}
-ecols <- grep("Intensity\\.", names(read.delim(featuresFile)))
+File <- read.delim(featuresFile)
+ecols <- grep("Intensity\\.", names(File))
 
 pe <- readQFeatures(
-    table = featuresFile, fnames = 1, ecol = ecols,
+    assayData = File, fnames = 1, ecol = ecols,
     name = "rawFeatures", sep = "\t"
 )
 currentAssay <- "rawFeatures"
 pe
+rm(File)
 ```
 
 In the following code chunk, we set-up the colData with the information on the design.
