@@ -74,10 +74,13 @@ makeDetailPlots <- function(pe,
         if (length(s)==1)
         {
           featureName <- rownames(clickInfo())[s]
-          pePlot <- pe[featureName,,c("featureNorm","summarized")]
+
+          pePlot <- pe[featureName,,c(input$selectedLowLevelAssay, input$selectedAssay)]
+          #pePlot <- pe[featureName,,c("peptideNorm", "protein")]
           pePlotDf <- data.frame(longFormat(pePlot))
           pePlotDf$assay <- factor(pePlotDf$assay,
-                                  levels = c("featureNorm", "summarized"))
+                                  levels = c(input$selectedLowLevelAssay, input$selectedAssay))
+          #                        levels = c("peptideNorm", "protein"))
           if (input$selColDetailPlot2!="none"){
               if(class(colData(pePlot)[[input$selColDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selColDetailPlot2]])=="character"){
               pePlotDf[,input$selColDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selColDetailPlot2]))
@@ -93,11 +96,13 @@ makeDetailPlots <- function(pe,
               pePlotDf[,input$selHorDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selHorDetailPlot2]))
               }
           }
-          if (input$logtransform) {
-             ylab <- "feature intensity (log2)"
-             } else {
-             ylab <- "feature intensity"
-             }
+          #if (input$logtransform) {
+          #   ylab <- "feature intensity (log2)"
+          #   } else {
+          #   ylab <- "feature intensity"
+          #   }
+          ylab <- "feature intensity"
+          
           p1 <- ggplot(data = pePlotDf,
                  aes(x = colname,
                      y = value,
