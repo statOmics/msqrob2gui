@@ -6,11 +6,10 @@
 #' @import tidyverse shiny shinymeta rmarkdown knitr msqrob2 grDevices limma graphics ggplot2 ExploreModelMatrix openxlsx reshape2
 
 
-# Define server logic required to draw a histogram
+# Define server 
 msqrob2Server <- function(input, output, session) {
 shinyjs::useShinyjs()
 variables <- reactiveValues(pe=NULL, selectedAssay=NULL, selectedLowLevelAssay=NULL)
-# Define server logic required to draw a histogram
 
   ###########################################
   #Input Tab
@@ -352,71 +351,56 @@ observeEvent(input$selectedLowLevelAssay,
     })
 
 ### use metaReactive to write options to file
-# 
-#     groupBy <- metaReactive({..(selectedProteins())}, varname ="groupBy")
-#     logTrans <- metaReactive({..(input$logtransform)}, varname = "logTrans")
-#     removeRazor <- metaReactive({..(input$smallestUniqueGroups)}, varname ="removeRazor")
-#     filterColumns <- metaReactive({..(selectedFilter())}, varname ="filterColumns")
-#     minObsFeat <- metaReactive({..(input$minIdentified)}, varname ="minObsFeat")
-#     normMethod <- metaReactive({..(input$normalisation)}, varname = "normMethod")
-#     sumMethod <- metaReactive({..(input$summarisation)}, varname ="sumMethod")
-#     form <- metaReactive({..(input$designformula)}, varname = "form")
-#     doRidge <- metaReactive({..(input$doRidge==1)}, varname = "doRidge")
-#     contrast <- metaReactive({..(input$contrast)}, , varname = "contrast")
-#     sigLevel <- metaReactive({..(input$alpha)}, varname = "sigLevel")
-#     maxPlot <- metaReactive({..(input$maxPlot)}, varname = "maxPlot")
-#     selHorPlot <- metaReactive({..(input$selHorDetailPlot2)}, varname = "selHorPlot")
-#     selVertPlot <- metaReactive({..(input$selVertDetailPlot2)}, varname ="selVertPlot")
-#     selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
-# 
-# 
-# 
-#     output$report <- downloadHandler(
-#       filename = function() {
-#         paste0(input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")
-#       },
-#       content = function(file) {
-#         file.copy(from = featuresDatapath(), to = "featuresFile.txt", overwrite = TRUE)
-#         file.copy(from = annotationDatapath(), to = "annotationFile.xlsx", overwrite = TRUE)
-#         input <- expandChain(
-#           quote({
-#                 featuresFile <- "featuresFile.txt"
-#                 annotationFile <- "annotationFile.xlsx"
-#                 }))
-#         preprocessing <- expandChain(
-#           invisible(groupBy()),
-#           invisible(logTrans()),
-#           invisible(removeRazor()),
-#           invisible(filterColumns()),
-#           invisible(minObsFeat()),
-#           invisible(normMethod())
-#           )
-#         summarization <- expandChain(invisible(sumMethod()))
-#         model <- expandChain(
-#           invisible(form()),
-#           invisible(doRidge())
-#           )
-#         inference <- expandChain(
-#           invisible(contrast()),
-#           invisible(sigLevel()))
-#         report <- expandChain(
-#           invisible(maxPlot())
-#           )
-#         buildRmdBundle(
-#           system.file("data/report.Rmd",package="msqrob2gui"),
-#           file,
-#           list(
-#                       input = input,
-#                       preprocessing = preprocessing,
-#                       summarization = summarization,
-#                       model = model,
-#                       inference = inference,
-#                       report = report
-#                       ),
-#           render=TRUE,
-#           include_files = c("featuresFile.txt",'annotationFile.xlsx')
-#         )
-#       })
+ 
+     selectedAssay <- metaReactive({..(input$selectedAssay)}, varname = "selectedAssay")
+     form <- metaReactive({..(input$designformula)}, varname = "form")
+     doRidge <- metaReactive({..(input$doRidge==1)}, varname = "doRidge")
+     contrast <- metaReactive({..(input$contrast)}, , varname = "contrast")
+     sigLevel <- metaReactive({..(input$alpha)}, varname = "sigLevel")
+     maxPlot <- metaReactive({..(input$maxPlot)}, varname = "maxPlot")
+     selectedLowLevelAssay <- metaReactive({..(input$selectedLowLevelAssay)}, varname = "selectedLowLevelAssay")
+     selHorPlot <- metaReactive({..(input$selHorDetailPlot2)}, varname = "selHorPlot")
+     selVertPlot <- metaReactive({..(input$selVertDetailPlot2)}, varname ="selVertPlot")
+     selColPlot <- metaReactive({..(input$selColDetailPlot2)}, varname = "selColPlot")
+
+     output$report <- downloadHandler(
+       filename = function() {
+         paste0(input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")
+       },
+       content = function(file) {
+         file.copy(from = peDatapath(), to = "qfeaturesFile.rds", overwrite = TRUE)
+         input <- expandChain(
+           quote({
+                 qfeaturesFile <- "qfeaturesFile.rds"
+                 }))
+         model <- expandChain(
+           invisible(selectedAssay()),
+           invisible(form()),
+           invisible(doRidge())
+           )
+         inference <- expandChain(
+           invisible(contrast()),
+           invisible(sigLevel()))
+         report <- expandChain(
+           invisible(maxPlot()),
+           invisible(selectedLowLevelAssay()),
+           invisible(selHorPlot()), 
+           invisible(selVertPlot()),
+           invisible(selColPlot())
+           )
+         buildRmdBundle(
+           system.file("data/report.Rmd",package="msqrob2gui"),
+           file,
+           list(
+                       input = input,
+                       model = model,
+                       inference = inference,
+                       report = report
+                       ),
+           render=FALSE,
+           include_files = c("qfeaturesFile.rds")
+         )
+       })
 
   #Stop the App when closing the browser or ending the session
   session$onSessionEnded(stopApp)

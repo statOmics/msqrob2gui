@@ -74,13 +74,11 @@ makeDetailPlots <- function(pe,
         if (length(s)==1)
         {
           featureName <- rownames(clickInfo())[s]
-
-          pePlot <- pe[featureName,,c(input$selectedLowLevelAssay, input$selectedAssay)]
-          #pePlot <- pe[featureName,,c("peptideNorm", "protein")]
+          selectedAssayNames <- c(input$selectedLowLevelAssay[!(input$selectedLowLevelAssay %in% input$selectedAssay)], input$selectedAssay)
+          pePlot <- pe[featureName,,selectedAssayNames]
           pePlotDf <- data.frame(longFormat(pePlot))
           pePlotDf$assay <- factor(pePlotDf$assay,
-                                  levels = c(input$selectedLowLevelAssay, input$selectedAssay))
-          #                        levels = c("peptideNorm", "protein"))
+                                  levels = selectedAssayNames)
           if (input$selColDetailPlot2!="none"){
               if(class(colData(pePlot)[[input$selColDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selColDetailPlot2]])=="character"){
               pePlotDf[,input$selColDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selColDetailPlot2]))

@@ -44,33 +44,9 @@ Initialize all input parameters used in the GUI.
 {{input}}
 ```
 
-Specification of feature file and annotation file. Note that the feature file and the annotation file are copied to the zip file for the report and are named
-featuresFile.txt and annotationFile.xlsx, respectively. 
+Specification of qfeature file  Note that the qfeature file is copied to the zip file for the report and is named
+qfeaturesFile.rds respectively. 
 
-
-
-## Preprocessing tab
-
-```{r}
-{{preprocessing}}
-```
-
-- The features are grouped by the variable groupBy=`r groupBy`. 
-- Log transformation: logTrans=`r logTrans`.
-- Remove razor peptides: removeRazor=`r removeRazor`
-- Following variables are used for filtering: filterColumns= `r filterColumns`
-- Peptides that are picked up in less than minObsFeat=`r minObsFeat` are removed
-- The features are normalized using normMethod=`r normMethod` 
-
-
-
-## Summarization tab
-
-```{r}
-{{summarization}}
-```
-
-The features are summarized according to the variable groupBy=`r groupBy` using summarization method: sumMethod=`r sumMethod`. 
 
 
 
@@ -110,228 +86,8 @@ your raw Feature-level intensities.
 To import the data we use the `QFeatures` package.
 
 ```{r}
-File <- read.delim(featuresFile)
-ecols <- grep("Intensity\\.", names(File))
-
-pe <- readQFeatures(
-    assayData = File, fnames = 1, ecol = ecols,
-    name = "rawFeatures", sep = "\t"
-)
-currentAssay <- "rawFeatures"
-pe
-rm(File)
+pe <- readRDS(qfeaturesFile)
 ```
-
-In the following code chunk, we set-up the colData with the information on the design.
-
-- The file path to the annotation data is `r annotationFile`
-
-```{r}
-exp_annotation <- as.data.frame(unclass(openxlsx::read.xlsx(annotationFile)))
-
-runName <- which(
-  vapply(exp_annotation, function(x) return(
-    identical(
-      sort(
-        as.character(
-          colnames(pe[[1]]))
-        ),
-      sort(
-        as.character(x))
-      )
-    ), FUN.VALUE = TRUE))
-if (length(runName)>0) runName <- runName[1]
-rownames(exp_annotation) <- as.character(
-  exp_annotation[,runName]
-  )
-
-exp_annotation <- exp_annotation[colnames(pe[[1]]),]
-
-for (j in colnames(exp_annotation))
-  colData(pe)[[j]] <- exp_annotation[,j]
-```
-
-
-# Preprocessing
-
-This section preforms preprocessing for the feature. 
-This include 
-
-- log transformation, 
-- filtering and 
-- summarization of the data.
-
-## Log-transformation
-
-We calculate how many non zero intensities we have per feature and this
-will be useful for filtering.
-
-```{r}
-rowData(pe[[currentAssay]])$nNonZero <- rowSums(assay(pe[[currentAssay]]) > 0)
-```
-
-
-features with zero intensities are missing features and should be represent
-with a `NA` value rather than `0`.
-```{r}
-pe <- zeroIsNA(pe, currentAssay) # convert 0 to NA
-```
-
-`r format(mean(is.na(assay(pe[[currentAssay]])))*100,digits=2)`% of all feature
-intensities are missing and for some features we do not even measure a signal
-in any sample.
-
-If the variable `logTrans` is TRUE than the logtransformation is performed. 
-
-```{r}
-logTrans
-```
-
-```{r}
-if(logTrans) {
-  pe <- logTransform(pe, base = 2, i = currentAssay, name = "logFeatures")
-  currentAssay <- "logFeatures"
-} 
-```
-
-## Filtering
-
-1. Handling razor features
-
-In maxQuant output a peptide can map to multiple proteins, as long as there is
-none of these proteins present in a smaller subgroup.
-
-if `removeRazor` is TRUE. Razor features are removed. 
-
-```{r}
-removeRazor
-```
-
-```{r}
-if (removeRazor) 
-{
-  formFiltRazor <-  formula(
-    paste0("~",
-           groupBy,
-           " %in% smallestUniqueGroups(rowData(pe[[currentAssay]])[[\"",
-           groupBy,
-           "\"]])")
-      )         
-    pe <- filterFeatures(pe, formFiltRazor)
-}
-```
-
-2. Filter
-
-The variable `filterColumns` contains the columns that will be used to filter the data. This currently only works for Maxquant input. For Maxquant values that are indicated with a "+" are filtered, e.g. Decoys (in the column named Reverse) and contaminants (in the columns named Contaminants or Potential.contaminants). 
-
-```{r}
-filterColumns
-```
-
-```{r}
-if (length(filterColumns)>0)
-  for (j in filterColumns)
-  {
-      rowData(pe[[currentAssay]])[is.na(rowData(pe[[currentAssay]])[,j]),j] <- ""
-      pe <- filterFeatures(pe,formula(paste0("~",j,"!=\"+\"")))
-  }
-```
-
-3. Drop features that were only identified in less than `r minObsFeat` samples
-
-
-```{r}
-minObsFeat
-```
-
-```{r}
-pe <- filterFeatures(pe,~ nNonZero >= minObsFeat)
-```
-
-We keep `r nrow(pe[[currentAssay]])` features upon filtering.
-
-
-## Normalize the data 
-
-The data are normalized using the `r normMethod` method (If normMethod is "none" no normalisation is performed). 
-
-```{r}
-normMethod
-```
-
-```{r}
-if (normMethod != "none")
-{
-  pe <- normalize(pe, 
-                i = currentAssay, 
-                name = "normFeatures", 
-                method = normMethod)
-  currentAssay <- "normFeatures"
-}
-```
-
-
-## Explore  normalized data
-
-```{r}
-  pe[[currentAssay]] %>% 
-    assay %>%
-    as.data.frame() %>%
-    gather(sample, intensity) %>% 
-  ggplot(aes(x = intensity, group = sample, color = sample)) +
-    geom_density()
-```
-
-We can visualize our data using a Multi Dimensional Scaling plot,
-eg. as provided by the `limma` package.
-
-```{r}
-pe[[currentAssay]] %>% 
-  assay %>%
-  limma::plotMDS() 
-```
-
-The first axis in the plot is showing the leading log fold changes
-(differences on the log scale) between the samples.
-
-
-
-## Summarization 
-
-The data are summarized using the summarization method: `r sumMethod` (if sumMethod is "none" no summarization is performed). 
-
-```{r}
-sumMethod
-```
-
-```{r, warning=FALSE}
-if (sumMethod!="none") 
-{
-  if (sumMethod=="robust") fun <- MsCoreUtils::robustSummary
-  if (sumMethod=="sum") fun <- base::colSums
-  if (sumMethod=="mean") fun <- base::colMeans
-  if (sumMethod=="median") fun <- matrixStats::colMedians
-  if (sumMethod=="medpolish") fun <- MsCoreUtils::medianPolish
-
-  pe <- aggregateFeatures(pe,
-  i = currentAssay,
-  fcol = groupBy,
-  na.rm = TRUE,
-  name = "sumFeatures",
-  fun = fun
-  )
-  currentAssay <- "sumFeatures"
-}
-```
-
-
-An MDS plot of the summarized features can be found below. 
-
-```{r}
- plotMDS(assay(pe[[currentAssay]]))
-```
-
 
 # Data Analysis
 
@@ -347,7 +103,7 @@ as.formula(form)
 ```
 
 ```{r, warning=FALSE}
-pe <- msqrob(object = pe, i = currentAssay, formula = as.formula(form), ridge = doRidge)
+pe <- msqrob(object = pe, i = selectedAssay, formula = as.formula(form), ridge = doRidge)
 ```
 
 ## Inference
@@ -387,12 +143,12 @@ L <- makeContrast(
   parameterNames = parameter_names
   )
 
-pe <- hypothesisTest(object = pe, i = currentAssay, contrast = L)
+pe <- hypothesisTest(object = pe, i = selectedAssay, contrast = L)
 ```
 
 The following features are significant at the `r sigLevel` FDR-level.
 ```{r}
-rowData(pe[[currentAssay]])[,colnames(L)] %>% 
+rowData(pe[[selectedAssay]])[,colnames(L)] %>% 
   arrange(pval) %>% 
   filter(adjPval < sigLevel) %>% 
   DT::datatable() %>% 
@@ -408,7 +164,7 @@ The FDR is controlled at the `r sigLevel`.
 
 ```{r,warning=FALSE}
 sigLevel
-volcano <- ggplot(rowData(pe[[currentAssay]])[, colnames(L)],
+volcano <- ggplot(rowData(pe[[selectedAssay]])[, colnames(L)],
                   aes(x = logFC, y = -log10(pval), color = adjPval < sigLevel)) +
   geom_point(cex = 2.5) +
   scale_color_manual(values = alpha(c("black", "red"), 0.5)) + theme_minimal()
@@ -422,12 +178,12 @@ If we could reject the null hypothesis related to the specified contrast for mor
 
 ```{r}
 sigLevel
-sigNames <- rowData(pe[[currentAssay]])[,colnames(L)] %>%
+sigNames <- rowData(pe[[selectedAssay]])[,colnames(L)] %>%
   rownames_to_column("feature") %>%
   arrange(pval) %>% 
   filter(adjPval<sigLevel) %>%
   pull(feature)
-if (length(sigNames) >1) heatmap(assay(pe[[currentAssay]])[sigNames, ]) else cat("No plots are generated because there are no significant summarized features at the", sigLevel, "FDR level")
+if (length(sigNames) >1) heatmap(assay(pe[[selectedAssay]])[sigNames, ]) else cat("No plots are generated because there are no significant summarized features at the", sigLevel, "FDR level")
 ```
 
 ### Detail plots
@@ -446,38 +202,74 @@ maxPlot
 if (length(sigNames) > maxPlot) 
   plotNames <- sigNames[1:maxPlot] else 
     plotNames <- sigNames
-if ("normFeatures" %in% names(pe) & "sumFeatures" %in% names(pe) & length(plotNames) >= 1) for (protName in plotNames)
+if (length(plotNames) >= 1) for (featureName in plotNames)
 {
-pePlot <- pe[protName, , c("normFeatures","sumFeatures")]
-pePlotDf <- data.frame(longFormat(pePlot))
-pePlotDf$assay <- factor(pePlotDf$assay,
-                        levels = c("normFeatures","sumFeatures"))
-# plotting
-p1 <- ggplot(
-    data = pePlotDf,
-    aes(x = colname, y = value, group = rowname)
-    ) +
-  geom_line() + 
-  geom_point() +  
-  theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
-  facet_grid(~assay) + 
-  ggtitle(protName) 
-print(p1)
-
-# plotting 2
-p2 <- ggplot(
-    pePlotDf, 
-    aes(x = colname, y = value)) +
-  geom_boxplot(outlier.shape = NA) + 
-  geom_point(
-    position = position_jitter(width = .1),
-    aes(shape = rowname)) +
-  scale_shape_manual(values = 1:nrow(pePlotDf)) +
-  labs(title = protName, x = "sample", y = "feature intensity (log2)") +
-  theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
-  facet_grid(~assay) +
-  ggtitle(protName) 
-print(p2)
+          selectedAssayNames <- c(selectedLowLevelAssay[!(selectedLowLevelAssay %in% selectedAssay)], selectedAssay)
+          pePlot <- pe[featureName,,selectedAssayNames]
+          pePlotDf <- data.frame(longFormat(pePlot))
+          pePlotDf$assay <- factor(pePlotDf$assay,
+                                  levels = selectedAssayNames)
+          if (selColPlot!="none"){
+              if(class(colData(pePlot)[[selColPlot]])=="factor" || class(colData(pePlot)[[selColPlot]])=="character"){
+              pePlotDf[,selColPlot] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,selColPlot]))
+              }
+          }
+          if (selVertPlot!="none"){
+              if(class(colData(pePlot)[[selVertPlot]])=="factor" || class(colData(pePlot)[[selVertPlot]])=="character"){
+              pePlotDf[,selVertPlot] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,selVertPlot]))
+              }
+          }
+          if (selHorPlot!="none"){
+              if(class(colData(pePlot)[[selHorPlot]])=="factor"||class(colData(pePlot)[[selHorPlot]])=="character"){
+              pePlotDf[,selHorPlot] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,selHorPlot]))
+              }
+          }
+          #if (logtransform) {
+          #   ylab <- "feature intensity (log2)"
+          #   } else {
+          #   ylab <- "feature intensity"
+          #   }
+          ylab <- "feature intensity"
+          
+          p1 <- ggplot(data = pePlotDf,
+                 aes(x = colname,
+                     y = value,
+                     group = rowname)) +
+              geom_line() +
+              geom_point() +
+              facet_grid(~ assay) +
+              labs(title = featureName, x = "sample", y = ylab) + 
+              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) 
+            
+          if (selColPlot!="none") {
+              if (class(pePlotDf[[selColPlot]])=="factor") {
+                p2 <- ggplot(pePlotDf, aes(x = colname, y = value,fill=pePlotDf[,selColPlot]))
+                }
+              } else {
+              p2 <- ggplot(pePlotDf, aes(x = colname, y = value))
+              }
+          p2 <- p2 +
+              geom_boxplot(outlier.shape = NA) +
+              geom_point(position = position_jitter(width = .1), aes(shape = rowname)) +
+              scale_shape_manual(values = 1:nrow(pePlotDf)) +
+              labs(title = featureName, x = "sample", y = ylab) +
+              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
+              facet_grid(~ assay)
+            
+          if (selVertPlot!="none"|selHorPlot!="none"){
+              if (selVertPlot=="none") {
+                  if (class(pePlotDf[[selHorPlot]])=="factor")
+                      p2 <- p2 + facet_grid(~assay+pePlotDf[,selHorPlot])
+                  } else {
+                  if (selHorPlot=="none"){
+                      p2 <- p2 + facet_grid(pePlotDf[,selVertPlot]~assay)
+                      } else {
+                      p2 <- p2 + facet_grid(pePlotDf[,selVertPlot]~assay+pePlotDf[,selHorPlot])
+                      }
+                  }
+          }
+          print(p1)
+          print(p2)
 } else cat("No plots are generated because there are no significant summarized features at the", sigLevel, "FDR level")
 ```
 
