@@ -37,6 +37,17 @@ variables <- reactiveValues(pe=NULL, selectedAssay=NULL, selectedLowLevelAssay=N
       as.list(c("none",colnames(colData(variables$pe))))
   })
   
+  
+  assayNamesPe <- reactive(names(variables$pe))
+  output$selectAssay<- renderUI({
+    selectInput("selectedAssay", NULL, assayNamesPe(), selected = variables$selectedAssay, width = '100%')})
+  
+  observeEvent(input$selectedAssay,
+               {
+                 variables$selectedAssay <- input$selectedAssay
+               })
+  
+  
   ########################################
   #Generate options for fixed effect variables
   ########################################
@@ -78,20 +89,8 @@ observe({
   output$selectFixed <- renderUI({
       h4(paste(colnames(colData(variables$pe)),collapse="\n"))
       })
-  assayNamesPe <- reactive(names(variables$pe))
-  output$selectAssay<- renderUI({
-    selectInput("selectedAssay", NULL, assayNamesPe(), selected = variables$selectedAssay, width = '100%')})
- 
-  observeEvent(input$selectedAssay,
-  {
-  variables$selectedAssay <- input$selectedAssay
-  })
+
   
-#  observeEvent({input$selectedAssay},{
-#    peOut <- variables$pe
-#    peOut[["summarized"]] <- peOut[[input$selectedAssay]]
-#    variables$pe <- peOut
-#  })
   
   visDesign <- reactive({
 

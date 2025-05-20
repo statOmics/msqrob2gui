@@ -47,6 +47,18 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
 
 		   #Main panel with number of output and plots
        mainPanel(width = 5,
+                 div(
+                   list(
+                     tags$label("Select Assay", `for`="selectAssay"),
+                     tags$button(id="button_selectAssay", tags$sup("[?]")),
+                     htmlOutput("selectAssay"),               
+                     hidden(
+                       helpText(id="tooltip_select_assay",
+                                "Select the QFeatures assay for the differential analysis.
+        	                      ")
+                     )
+                   )
+                 ),
             h3("Frequently asked questions"),
             htmlOutput("folderError"),
 
@@ -73,18 +85,6 @@ msqrob2UI <- fluidPage(theme = shinytheme("spacelab"),
       sidebarLayout(
        sidebarPanel(
            h3("Build Model"),
-           div(
-             list(
-               tags$label("Select Assay", `for`="selectAssay"),
-               tags$button(id="button_selectAssay", tags$sup("[?]")),
-               htmlOutput("selectAssay"),               
-               hidden(
-                 helpText(id="tooltip_select_assay",
-                          "Select the QFeatures assay for the differential analysis.
-        	                      ")
-               )
-             )
-           ),
            h4("Following variables can be selected to build the model: "),
   	       h4(htmlOutput("selectFixed")),
            div(
