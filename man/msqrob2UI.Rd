@@ -5,7 +5,7 @@
 \alias{msqrob2UI}
 \title{Shiny app server object}
 \format{
-An object of class \code{shiny.tag.list} (inherits from \code{list}) of length 4.
+An object of class \code{shiny.tag.list} (inherits from \code{list}) of length 2.
 }
 \usage{
 msqrob2UI

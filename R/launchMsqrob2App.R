@@ -9,7 +9,7 @@
 #' @example
 #' \dontrun{launchMsqrob2App()}
 #'
-#' @import shiny shinymeta shinyjs
+#' @import shiny shinymeta shinyjs msqrob2 QFeatures DT SummarizedExperiment shinybusy
 #'
 
 
