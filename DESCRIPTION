@@ -11,6 +11,26 @@ Authors@R:
 Description: Shiny Apps building on the msqrob2 package for robust statistical inference for quantitative proteomics
    using the QFeature infrastructure for quantitative mass spectrometry
    data.
+Imports:
+    msqrob2,
+    QFeatures,
+    DT,
+    SummarizedExperiment,
+    msqrob2,
+    ExploreModelMatrix,
+    MultiAssayExperiment,
+    dplyr,
+    tidyr,
+    ggplot2,
+    htmltools,
+    shiny,
+    shinybusy,
+    shinyjs,
+    shinymeta,
+    shinyBS,
+    shinyFeedback,
+    shinydashboard,
+    shinydashboardPlus
 License: Artistic-2.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
