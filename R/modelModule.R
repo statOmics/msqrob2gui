@@ -85,9 +85,11 @@ modelServer <- function(id="model", variables){
       visDesign <- reactive({
         #If the formula contains a random effect, remove it in order to use VisualizeDesign
         if (any(grepl("\\|",attr(terms(as.formula(input$designFormula)), "term.labels")))){
-          out <- VisualizeDesign(colData(variables$pe),update(as.formula(input$designFormula), as.formula(paste("~. -",paste0("(",attr(terms(as.formula(input$designFormula)), "term.labels")[grepl("\\|", attr(terms(as.formula(input$designFormula)), "term.labels"))], ")")))))
-          #input$designFormula <- update(input$designFormula, as.formula(paste("~. -",paste0("(",attr(terms(designFormula), "term.labels")[grepl("\\|", attr(terms(designFormula), "term.labels"))], ")"))))
-        } else {
+          modFixed <- as.formula(input$designFormula)
+          for (mixedTerms in paste0("(",attr(terms(modFixed), "term.labels")[grepl("\\|", attr(terms(as.formula(modFixed)), "term.labels"))], ")"))
+            modFixed <- update(as.formula(modFixed), as.formula(paste("~. -",mixedTerms)))
+          out <- VisualizeDesign(colData(variables$pe),modFixed)
+          } else {
           out <- VisualizeDesign(colData(variables$pe),input$designFormula)
         }
 
