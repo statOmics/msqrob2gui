@@ -88,9 +88,9 @@ modelServer <- function(id="model", variables){
           modFixed <- as.formula(input$designFormula)
           for (mixedTerms in paste0("(",attr(terms(modFixed), "term.labels")[grepl("\\|", attr(terms(as.formula(modFixed)), "term.labels"))], ")"))
             modFixed <- update(as.formula(modFixed), as.formula(paste("~. -",mixedTerms)))
-          out <- VisualizeDesign(colData(variables$pe),modFixed)
+          out <- VisualizeDesign(colData(getWithColData(variables$pe,variables$selectedAssay)),modFixed)
           } else {
-          out <- VisualizeDesign(colData(variables$pe),input$designFormula)
+          out <- VisualizeDesign(colData(getWithColData(variables$pe,variables$selectedAssay)),input$designFormula)
         }
 
         ### Evaluate model
