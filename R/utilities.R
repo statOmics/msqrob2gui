@@ -252,7 +252,7 @@ makeDetailPlots <- function(pe,
       featureName <- rownames(clickInfo())[s]
       selectedAssayNames <- c(detailServerInput$selectedLowLevelAssay[!(detailServerInput$selectedLowLevelAssay %in% inputServerInput$selectedAssay())], inputServerInput$selectedAssay())
       pePlot <- pe[featureName,,selectedAssayNames]
-      pePlotDf <- data.frame(longFormat(pePlot))
+      pePlotDf <- data.frame(longForm(pePlot))
       pePlotDf$assay <- factor(pePlotDf$assay,
                                levels = selectedAssayNames)
       if (detailServerInput$selColDetailPlot2!="none"){
