@@ -364,3 +364,34 @@ makeBoxplotFC<-function(dataset, sel, regulation="both")
   if (regulation =="down")
     boxplot((dataset|>filter(logFC<0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
 }
+
+
+#' Function for pca plot of samples
+#'
+#' @param pe QFeatures object
+#' @param assayName string with name of QFeatures assay
+#' @param varName string with name of variable in colData used to color the density curves
+#' @return ggplot object
+#' @rdname INTERNAL_plotPCA
+#' @keywords internal
+#'
+#' @importFrom pcaMethods pca scores
+#' @importFrom ggplot2 ggplot geom_point xlab ylab sym
+#'
+#'
+
+plotPCA <- function(pe, assayName, varName)
+{
+  varName <- as.character(varName)
+  pc <- pe[[assayName]] |>
+    assay() |>
+    as.data.frame() |>
+    t() |>
+    pca(method="nipals")
+  df <- merge(scores(pc),colData(pe),by = 0)
+
+  ggplot(df, aes(PC1, PC2, col = !!sym(varName))) +
+    geom_point() +
+    xlab(paste0("PC1 (", round(pc@R2[1] * 100,1),"%)")) +
+    ylab(paste0("PC2 (", round(pc@R2[2] * 100,1),"%)"))
+}

@@ -55,6 +55,7 @@ qfeaturesFile.rds respectively.
 ```{r}
 {{model}}
 doRidge <- ifelse(doRidge=="1", TRUE, FALSE)
+doRobust <- ifelse(doRobust=="1", TRUE, FALSE)
 ```
 
 - The data are modelled using the following formula: form=`r form`
@@ -104,7 +105,7 @@ as.formula(form)
 ```
 
 ```{r, warning=FALSE}
-pe <- msqrob(object = pe, i = selectedAssay, formula = as.formula(form), ridge = doRidge, overwrite=TRUE)
+pe <- msqrob(object = pe, i = selectedAssay, formula = as.formula(form), ridge = doRidge, robust = doRobust, overwrite=TRUE)
 ```
 
 ## Inference
@@ -207,7 +208,7 @@ if (length(plotNames) >= 1) for (featureName in plotNames)
 {
           selectedAssayNames <- c(selectedLowLevelAssay[!(selectedLowLevelAssay %in% selectedAssay)], selectedAssay)
           pePlot <- pe[featureName,,selectedAssayNames]
-          pePlotDf <- data.frame(longFormat(pePlot))
+          pePlotDf <- data.frame(longForm(pePlot))
           pePlotDf$assay <- factor(pePlotDf$assay,
                                   levels = selectedAssayNames)
           if (selColPlot!="none"){

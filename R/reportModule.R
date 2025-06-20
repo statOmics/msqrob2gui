@@ -56,6 +56,7 @@ reportServer <- function(id="report", variables, inputServerInput, modelServerIn
       selectedAssay <- metaReactive({..(inputServerInput$selectedAssay())}, varname = "selectedAssay")
       form <- metaReactive({..(modelServerInput$designFormula())}, varname = "form")
       doRidge <- metaReactive({..(modelServerInput$doRidge())}, varname = "doRidge")
+      doRobust <- metaReactive({..(modelServerInput$doRobust())}, varname = "doRobust")
       contrast <- metaReactive({..(inferenceServerInput$contrast())}, , varname = "contrast")
       sigLevel <- metaReactive({..(inferenceServerInput$alpha())}, varname = "sigLevel")
       selectedLowLevelAssay <- metaReactive({..(inferenceServerInput$selectedLowLevelAssay())}, varname = "selectedLowLevelAssay")
@@ -80,7 +81,8 @@ reportServer <- function(id="report", variables, inputServerInput, modelServerIn
             expandChain(
             invisible(selectedAssay()),
             invisible(form()),
-            invisible(doRidge())
+            invisible(doRidge()),
+            invisible(doRobust())
             )
           )
           inference <- gsub(paste0(id,"_"),"\n",

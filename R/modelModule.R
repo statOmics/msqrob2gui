@@ -41,7 +41,7 @@ modelUI <- function(id="model")
              list(
                tags$label("Ridge regression for fixed effects?", `for`="doRidge"),
                #tags$button(id="button_doRidge", tags$sup("[?]")),
-               radioButtons(NS(id,"doRidge"), label=NULL,c("No"=0,"Yes" = 1)),
+               radioButtons(NS(id,"doRidge"), label=NULL,c("No"= 0,"Yes" = 1)),
                #hidden(
                  helpText(id="tooltip_doRidge","
                When \"Yes\" is selected the fixed effects are estimated using ridge regression. This shrinks the estimates with low evidence for differential abundance towards zero and improves the performance.
@@ -52,6 +52,19 @@ modelUI <- function(id="model")
                #) #close hidden
              )
            ),
+           div(
+             list(
+               tags$label("Robust regression for fixed effects?", `for`="doRobust"),
+               #tags$button(id="button_doRidge", tags$sup("[?]")),
+               radioButtons(NS(id,"doRobust"), label=NULL,c("No"= 0,"Yes" = 1), selected=1),
+               #hidden(
+               helpText(id="tooltip_doRobust",
+                        "When \"Yes\" is selected the fixed effects are estimated using robust regression. This downweights the impact of outliers on the regression."
+               )
+               #) #close hidden
+             )
+           ),
+
            #), # end column
            #column(width=8,
            h3("Visualize Design"),
@@ -141,11 +154,11 @@ modelServer <- function(id="model", variables){
         )
 
         peOut <- variables$pe
-        peOut <- try(msqrob(object=peOut,i=variables$selectedAssay, formula=stats::as.formula(input$designFormula),overwrite=TRUE, ridge=input$doRidge==1))
+        peOut <- try(msqrob(object=peOut,i=variables$selectedAssay, formula=stats::as.formula(input$designFormula),overwrite=TRUE, robust=input$doRobust==1, ridge=input$doRidge==1))
 
         if (class(peOut)=="QFeatures") {
           variables$pe <- peOut
-          if(input$doRidge==1 ){
+          if(input$doRidge==1){
             #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
             parameterNames <- paste0("ridge",colnames(visDesign()[[3]]))
             parameterNames <- gsub("ridge(Intercept)", "(Intercept)",parameterNames)
@@ -166,7 +179,8 @@ modelServer <- function(id="model", variables){
       return(
         list(
           designFormula = reactive(input$designFormula),
-          doRidge = reactive(input$doRidge)
+          doRidge = reactive(input$doRidge),
+          doRobust = reactive(input$doRobust)
           )
         )
       })

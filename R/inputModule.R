@@ -9,7 +9,7 @@
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
 #' @importFrom DT dataTableOutput
-#'
+
 
 inputUI <- function(id="import")
 {
@@ -73,6 +73,7 @@ inputUI <- function(id="import")
              )
            ),
           uiOutput(NS(id,'densityPlot')),
+          uiOutput(NS(id,'pcaPlot')),
           div(
             list(
               br(),
@@ -177,12 +178,23 @@ inputServer <- function(id="import", variables){
 
       output$densityPlot <- renderUI(
         renderPlot(
-          plotDensities(variables$pe, input$selectedAssay, input$selectedVariable)
+          plotDensities(variables$pe,
+                        input$selectedAssay,
+                        input$selectedVariable)
           )
       )
 
+      ### PCA plot
 
-
+      output$pcaPlot <- renderUI(
+        {
+          renderPlot(
+            plotPCA(variables$pe,
+                    input$selectedAssay,
+                    input$selectedVariable)
+            )
+        }
+        )
       return(
         list(
           selectedAssay = reactive(input$selectedAssay),
