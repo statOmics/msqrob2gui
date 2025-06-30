@@ -383,11 +383,16 @@ makeBoxplotFC<-function(dataset, sel, regulation="both")
 plotPCA <- function(pe, assayName, varName)
 {
   varName <- as.character(varName)
-  pc <- pe[[assayName]] |>
+
+  dat <- pe[[assayName]] |>
     assay() |>
-    as.data.frame() |>
-    t() |>
+    t()
+
+  dat[is.nan(dat)] <- NA
+
+  pc <- dat |>
     pca(method="nipals")
+
   df <- merge(scores(pc),colData(pe),by = 0)
 
   ggplot(df, aes(PC1, PC2, col = !!sym(varName))) +
