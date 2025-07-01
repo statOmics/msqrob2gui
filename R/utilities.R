@@ -354,15 +354,16 @@ plotDensities <- function(pe, assayName, varName)
 #' @rdname INTERNAL_plotDensities
 #' @keywords internal
 #'
+#' @importFrom dplyr filter
 #'
 makeBoxplotFC<-function(dataset, sel, regulation="both")
 {
   if (regulation =="both")
     boxplot(dataset[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
   if (regulation =="up")
-    boxplot((dataset|>filter(logFC>0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
+    boxplot((dataset|>dplyr::filter(logFC>0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
   if (regulation =="down")
-    boxplot((dataset|>filter(logFC<0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
+    boxplot((dataset|>dplyr::filter(logFC<0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
 }
 
 
