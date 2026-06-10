@@ -137,7 +137,7 @@ importServer <- function(id="import", variables){
       parsedQuantCols <- reactive({
         req(quantColsDebounced())
         req(variables$pe)
-        val <- trimws(unlist(strsplit(input$quantCols, ",")))
+        val <- trimws(unlist(strsplit(quantColsDebounced(), ",")))
         
         # check if indices or names
         if (all(!is.na(suppressWarnings(as.integer(val))))) {
@@ -150,9 +150,9 @@ importServer <- function(id="import", variables){
       
       # build QFeatures
       qfeatures <- reactive({
-        req(variables$pe)
         req(quantColsDebounced())
-        
+        req(variables$pe)
+       
         pe <- if (input$software == "diann") {
           QFeatures::readQFeatures(
             assayData = variables$pe,
@@ -185,10 +185,11 @@ importServer <- function(id="import", variables){
         variables$qfeatures <- qfeatures()
       })
       
-      # wirte in csv the run col with sample annotation
+      # write in csv the run col with sample annotation
       output$printed_annot <- downloadHandler(
         filename = function() "annotation.csv",
         content  = function(file) {
+          
           req(variables$qfeatures)
           
           annot <- data.frame(sampleName = colnames(variables$qfeatures))
