@@ -130,9 +130,12 @@ importServer <- function(id="import", variables){
         }
       )
       
+      # waiting time for user
+      quantColsDebounced <- debounce(reactive(input$quantCols), 1000)  # wait 1 second
+      
       # Get the intensity columns
       parsedQuantCols <- reactive({
-        req(input$quantCols)
+        req(quantColsDebounced())
         req(variables$pe)
         val <- trimws(unlist(strsplit(input$quantCols, ",")))
         
@@ -153,7 +156,7 @@ importServer <- function(id="import", variables){
         pe <- if (input$software == "diann") {
           QFeatures::readQFeatures(
             assayData = variables$pe,
-            fnames    = "Precursors.Id",
+            fnames    = "Precursor.Id",
             runCol    = "Run",
             quantCol  = parsedQuantCols(),
             name      = "precursors"
