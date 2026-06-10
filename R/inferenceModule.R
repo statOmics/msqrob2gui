@@ -117,7 +117,7 @@ inferenceUI <- function(id="inference")
 #' @rdname INTERNAL_inferenceServer
 #' @keywords internal
 #'
-inferenceServer <- function(id="inference", variables, inputServerInput){
+inferenceServer <- function(id="inference", variables, importServerInput){
   moduleServer(
     id,
     function(input,output,session){

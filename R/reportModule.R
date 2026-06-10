@@ -48,7 +48,7 @@ reportUI <- function(id="report")
 #' @rdname INTERNAL_inferenceServer
 #' @keywords internal
 #'
-reportServer <- function(id="report", variables, inputServerInput, modelServerInput, inferenceServerInput){
+reportServer <- function(id="report", variables, importServerInput, modelServerInput, inferenceServerInput){
   moduleServer(
     id,
     function(input,output,session){

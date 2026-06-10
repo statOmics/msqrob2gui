@@ -15,7 +15,7 @@ msqrob2Server <- function(input, output, session) {
    ### input
   shinyjs::useShinyjs()
 
-  global_variables <- reactiveValues(pe = QFeatures(),
+  global_variables <- reactiveValues(pe = NULL,
                                      selectedAssay = NULL,
                                      selectedLowLevelAssay = NULL) #Has to be done globally
 
@@ -26,7 +26,7 @@ msqrob2Server <- function(input, output, session) {
   inferenceServerInput <- inferenceServer(variables = global_variables,
                                           importServerInput = importServerInput)
 
-  reportServer <- reportServer(variables = global_variables,
+  reportServerInput <- reportServer(variables = global_variables,
                                importServerInput = importServerInput,
                                modelServerInput = modelServerInput,
                                inferenceServerInput = inferenceServerInput)
