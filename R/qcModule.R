@@ -1,4 +1,4 @@
-#' input UI
+#' qc UI
 #'
 #' @return A shiny tagList object that contains the input UI components
 #' @rdname INTERNAL_inputUI
@@ -11,7 +11,7 @@
 #' @importFrom DT dataTableOutput
 
 
-inputUI <- function(id="import")
+qcUI <- function(id="qc")
 {
   fluidRow(
     column(width=12,
@@ -101,7 +101,7 @@ inputUI <- function(id="import")
 #' @importFrom MultiAssayExperiment getWithColData
 #' @importFrom DT datatable renderDataTable
 #'
-inputServer <- function(id="import", variables){
+qcServer <- function(id="qc", variables){
   moduleServer(
     id,
     function(input,output,session){

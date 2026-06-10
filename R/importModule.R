@@ -11,7 +11,7 @@
 #' @importFrom DT dataTableOutput
 
 
-inputUI <- function(id="import")
+importUI <- function(id="import")
 {
   fluidRow(
     column(width=12,
@@ -93,7 +93,7 @@ inputUI <- function(id="import")
 #' @importFrom MultiAssayExperiment getWithColData
 #' @importFrom DT datatable renderDataTable
 #'
-inputServer <- function(id="import", variables){
+importServer <- function(id="import", variables){
   moduleServer(
     id,
     function(input,output,session){
