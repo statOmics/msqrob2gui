@@ -153,7 +153,7 @@ importServer <- function(id="import", variables){
         pe <- if (input$software == "diann") {
           QFeatures::readQFeatures(
             assayData = variables$pe,
-            fnames    = "Precursor.Id",
+            fnames    = "Precursors.Id",
             runCol    = "Run",
             quantCol  = parsedQuantCols(),
             name      = "precursors"
