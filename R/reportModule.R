@@ -70,7 +70,7 @@ reportServer <- function(id="report", variables, importServerInput, modelServerI
           input$project_name,"-report-", gsub(" |:","-",Sys.time()),".zip")
         },
         content = function(file) {
-          peOut <- variables$pe
+          peOut <- variables$qfeatures
           saveRDS(peOut,"qfeaturesFile.rds")
           input <- expandChain(
             quote({
