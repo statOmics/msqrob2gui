@@ -133,6 +133,7 @@ importServer <- function(id="import", variables){
       # Get the intensity columns
       parsedQuantCols <- reactive({
         req(input$quantCols)
+        req(variables$pe)
         val <- trimws(unlist(strsplit(input$quantCols, ",")))
         
         # check if indices or names
@@ -147,6 +148,7 @@ importServer <- function(id="import", variables){
       # build QFeatures
       qfeatures <- reactive({
         req(variables$pe)
+        req(input$quantCols)
         
         pe <- if (input$software == "diann") {
           QFeatures::readQFeatures(
