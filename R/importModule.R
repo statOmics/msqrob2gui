@@ -151,7 +151,7 @@ importServer <- function(id="import", variables){
       # build QFeatures
       qfeatures <- reactive({
         req(variables$pe)
-        req(input$quantCols)
+        req(quantColsDebounced())
         
         pe <- if (input$software == "diann") {
           QFeatures::readQFeatures(
