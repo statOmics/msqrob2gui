@@ -20,7 +20,9 @@ importUI <- function(id="import")
                tags$label("Software", `for`="software"),
                selectInput(NS(id, "software"), label = NULL,
                            choices = c("DIA-NN"      = "diann",
-                                       "Spectronaut" = "spectronaut"),
+                                       "Spectronaut" = "spectronaut",
+                                       "Max-Quant" = "maxquant",
+                                       "Other" = "other"),
                            selected = "diann"
                            ),
                
@@ -39,12 +41,26 @@ importUI <- function(id="import")
            ),
            div(
              list(
-               tags$label("Intensity column(s)", `for`="quantCols"),
-               textInput(NS(id, "quantCols"), 
-                         label = NULL,
-                         placeholder = "e.g. Precursor.Normalised or 5, 6, 7"),
-               helpText(id = "tooltip_quantcols",
-                        "Specify the column name or index of the intensity columns. For the input file in wide format specify multiple columns separated with a comma.")
+               tags$label("Input file preview"),
+               DT::dataTableOutput(NS(id, "pePreview"))
+             )
+           ),
+           uiOutput(NS(id, "columnSelectors")),
+           div(
+             list(tags$label("Name summarized experiment", `for`="name"),
+                  textInput(inputId=NS(id,"name"), label=NULL, value = "precursors"),
+                  helpText(
+                    id="tooltip_name",
+                    "Assign a name to the summarized experiement in the QFeatures object. By default it is called precursors."
+                  )
+             )
+           ),
+           div(
+             list(
+               tags$label("QFeatures", `for`="buildQFeatures"),
+               actionButton(NS(id, "buildQFeatures"),"Build the QFeatures object"),
+               helpText(id = "tooltip_buildQFeatures",
+                        "The button generate a QFeatures object.")
              )
            ),
            div(
@@ -62,7 +78,13 @@ importUI <- function(id="import")
                fileInput(inputId=NS(id,"annot"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
                
                  helpText(id = "tooltip_annotation",
-                          "If available, upload the annotation file")
+                          "If available, upload the annotation file. The first column must match the samples' names of the QFeatures object")
+             )
+           ),
+           div(
+             list(
+               tags$label("QFeatures summary"),
+               verbatimTextOutput(NS(id, "qfeaturesSummary"))
              )
            ),
            
@@ -130,50 +152,112 @@ importServer <- function(id="import", variables){
         }
       )
       
-      # waiting time for user
-      quantColsDebounced <- debounce(reactive(input$quantCols), 1000)  # wait 1 second
+      # select columns
       
-      # Get the intensity columns
-      parsedQuantCols <- reactive({
-        req(quantColsDebounced())
+      output$columnSelectors <- renderUI({
         req(variables$pe)
-        val <- trimws(unlist(strsplit(quantColsDebounced(), ",")))
         
-        # check if indices or names
-        if (all(!is.na(suppressWarnings(as.integer(val))))) {
-          as.integer(val)   # indices
+        cols <- colnames(variables$pe)
+        isLong <- input$software %in% c("diann", "spectronaut")
+        
+        cfg <- switch(input$software,
+                      diann = list(
+                        fnames   = "Precursor.Id",
+                        runCol   = "Run",
+                        quantCol = "Precursor.Quantity"
+                      ),
+                      spectronaut = list(
+                        fnames   = "EG_PrecursorId",
+                        runCol   = "R_FileName",
+                        quantCol = "FG_MS2RawQuantity"
+                      ),
+                      maxquant = list(
+                        fnames   = "Sequence",
+                        runCol   = NULL,
+                        quantCol = grep("Intensity ", cols, value = TRUE)
+                      ),
+                      other = list(
+                        fnames   = NULL,
+                        runCol   = NULL,
+                        quantCol = NULL
+                      )
+        )
+        
+        if (isLong) {
+          list(
+            tags$label("Column selection"),
+            selectizeInput(NS(id, "fnames"),   "Feature ID column",
+                           choices = cols, selected = cfg$fnames),
+            selectizeInput(NS(id, "runCol"),   "Run column",
+                           choices = cols, selected = cfg$runCol),
+            selectizeInput(NS(id, "quantCol"), "Intensity column",
+                           choices = cols, selected = cfg$quantCol)
+          )
         } else {
-          which(colnames(variables$pe) %in% val)  # column names
+          list(
+            tags$label("Column selection"),
+            selectizeInput(NS(id, "fnames"),    "Feature ID column",
+                           choices = cols, selected = cfg$fnames),
+            selectizeInput(NS(id, "quantCols"), "Intensity columns",
+                           choices = cols, selected = cfg$quantCol,
+                           multiple = TRUE)
+          )
         }
       })
       
-      
-      # build QFeatures
-      qfeatures <- reactive({
-        req(quantColsDebounced())
+      # preview raw input file
+      output$pePreview <- DT::renderDataTable({
         req(variables$pe)
-       
-        pe <- if (input$software == "diann") {
+      
+        DT::datatable(
+          head(variables$pe, 5),  
+          options = list(scrollX = TRUE)
+        )
+      })
+      
+      # preview QFeatures — show the assay matrix
+      output$qfeaturesPreview <- DT::renderDataTable({
+        req(variables$qfeatures)
+        DT::datatable(
+          as.data.frame(SummarizedExperiment::assay(variables$qfeatures[[1]])),
+          options = list(scrollX = TRUE)
+        )
+      })
+      
+      
+      # build qfeatures
+      qfeatures <- eventReactive(input$buildQFeatures, {
+        req(variables$pe)
+        req(input$fnames)
+        req(input$name)
+        
+        isLong <- input$software %in% c("diann", "spectronaut")
+        
+        pe <- if (isLong) {
+          req(input$runCol)
+          req(input$quantCol)
           QFeatures::readQFeatures(
             assayData = variables$pe,
-            fnames    = "Precursor.Id",
-            runCol    = "Run",
-            quantCol  = parsedQuantCols(),
-            name      = "precursors"
+            fnames    = input$fnames,
+            runCol    = input$runCol,
+            quantCol  = input$quantCol,
+            name      = input$name
           )
         } else {
-          quantCols <- which(sapply(variables$pe, is.numeric))
+          req(input$quantCols)
           QFeatures::readQFeatures(
             assayData = variables$pe,
-            fnames    = "EG.PrecursorId",
-            quantCols = parsedQuantCols(),
-            name      = "precursors"
+            fnames    = input$fnames,
+            quantCols = which(colnames(variables$pe) %in% input$quantCols),
+            name      = input$name
           )
         }
         
         # add annotation if available
         if (!is.null(variables$annot)) {
-          SummarizedExperiment::colData(pe) <- S4Vectors::DataFrame(variables$annot)
+          annot <- as.data.frame(variables$annot)
+          rownames(annot) <- annot[,1]
+          SummarizedExperiment::colData(pe) <- annot
         }
         
         pe
@@ -189,13 +273,20 @@ importServer <- function(id="import", variables){
       output$printed_annot <- downloadHandler(
         filename = function() "annotation.csv",
         content  = function(file) {
-          
           req(variables$qfeatures)
           
-          annot <- data.frame(sampleName = colnames(variables$qfeatures))
-          write.csv(annot, file, row.names = FALSE)
+          annot <- data.frame(
+            sampleName = colnames(variables$qfeatures),
+            row.names  = colnames(variables$qfeatures)
+          )
+          write.csv(annot, file, row.names = TRUE)  # ← keep rownames
         }
       )
+      
+      output$qfeaturesSummary <- renderPrint({
+        req(variables$qfeatures)
+        variables$qfeatures
+      })
       
       return(
         list(
