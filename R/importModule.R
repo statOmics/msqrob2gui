@@ -46,15 +46,7 @@ importUI <- function(id="import")
              )
            ),
            uiOutput(NS(id, "columnSelectors")),
-           div(
-             list(tags$label("Name summarized experiment", `for`="name"),
-                  textInput(inputId=NS(id,"name"), label=NULL, value = "precursors"),
-                  helpText(
-                    id="tooltip_name",
-                    "Assign a name to the summarized experiement in the QFeatures object. By default it is called precursors."
-                  )
-             )
-           ),
+           uiOutput(NS(id, "nameInput")),
            div(
              list(
                tags$label("QFeatures", `for`="buildQFeatures"),
@@ -71,14 +63,13 @@ importUI <- function(id="import")
                         "The button generate a csv file with the samples' names of the input file, which the user can modify to create an annotation file.")
              )
            ),
-      
            div(
              list(
                tags$label("Annotation file", `for`="annot"),
                fileInput(inputId=NS(id,"annot"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
-               
-                 helpText(id = "tooltip_annotation",
-                          "If available, upload the annotation file. The first column must match the samples' names of the QFeatures object")
+               actionButton(NS(id, "addAnnot"), "Add annotation"),
+               helpText(id = "tooltip_annotation",
+                        "If available, upload the annotation file and click 'Add annotation'. The first column must match the samples' names of the QFeatures object.")
              )
            ),
            div(
@@ -153,7 +144,6 @@ importServer <- function(id="import", variables){
       )
       
       # select columns
-      
       output$columnSelectors <- renderUI({
         req(variables$pe)
         
@@ -198,6 +188,8 @@ importServer <- function(id="import", variables){
             tags$label("Column selection"),
             selectizeInput(NS(id, "fnames"),    "Feature ID column",
                            choices = cols, selected = cfg$fnames),
+            selectizeInput(NS(id, "runCol"),   "Run column",
+                           choices = cols, selected = cfg$runCol),
             selectizeInput(NS(id, "quantCols"), "Intensity columns",
                            choices = cols, selected = cfg$quantCol,
                            multiple = TRUE)
@@ -224,12 +216,23 @@ importServer <- function(id="import", variables){
         )
       })
       
+      #name input summarized experiment, only showing for maxquant and other
+      output$nameInput <- renderUI({
+        if (input$software %in% c("maxquant", "other")) {
+          div(list(
+            tags$label("Name summarized experiment"),
+            textInput(NS(id, "name"), label = NULL, value = "precursors"),
+            helpText("Assign a name to the summarized experiment.")
+          ))
+        }
+      })
+      
       
       # build qfeatures
       qfeatures <- eventReactive(input$buildQFeatures, {
         req(variables$pe)
         req(input$fnames)
-        req(input$name)
+        
         
         isLong <- input$software %in% c("diann", "spectronaut")
         
@@ -253,14 +256,19 @@ importServer <- function(id="import", variables){
           )
         }
         
-        # add annotation if available
-        if (!is.null(variables$annot)) {
-          annot <- as.data.frame(variables$annot)
-          rownames(annot) <- annot[,1]
-          SummarizedExperiment::colData(pe) <- annot
-        }
-        
         pe
+      })
+      
+      # add annotation table to the QFeatures
+      observeEvent(input$addAnnot, {
+        req(variables$qfeatures)
+        req(variables$annot)
+        
+        annot <- as.data.frame(variables$annot)
+        rownames(annot) <- annot[,1]
+        SummarizedExperiment::colData(variables$qfeatures) <- annot
+        
+        showNotification("Annotation added successfully", type = "message")
       })
       
       # store in variables
@@ -274,12 +282,15 @@ importServer <- function(id="import", variables){
         filename = function() "annotation.csv",
         content  = function(file) {
           req(variables$qfeatures)
+          sampleNames <- unlist(lapply(seq_along(variables$qfeatures), function(i) {
+            colnames(variables$qfeatures[[i]])
+          }))
           
           annot <- data.frame(
-            sampleName = colnames(variables$qfeatures),
-            row.names  = colnames(variables$qfeatures)
+            sampleName = sampleNames,
+            row.names  = sampleNames
           )
-          write.csv(annot, file, row.names = TRUE)  # ← keep rownames
+          write.csv(annot, file, row.names = TRUE)  
         }
       )
       
