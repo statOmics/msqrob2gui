@@ -42,7 +42,7 @@ importUI <- function(id="import")
            div(
              list(
                tags$label("Input file preview"),
-               DT::dataTableOutput(NS(id, "pePreview"))
+               DT::dataTableOutput(NS(id, "pePreview"),)
              )
            ),
            uiOutput(NS(id, "columnSelectors")),
@@ -124,24 +124,11 @@ importServer <- function(id="import", variables){
           }
           
         } else {
-          removeNotification(id="noProperFile")}
+          removeNotification(id="File Not Valid")}
         variables$pe <- peOut
       })
       
-      #extract datapath of annotation file
-      annotDatapath <- metaReactive({getDataPath(..(input$annot$datapath))})
       
-      #import the annotation file
-      observeEvent({input$annot},{
-          annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE))
-          if (inherits(annotOut, "try-error")) {
-            showNotification("Upload proper annotation file",id="noProperAnnotFile",type="error",duration=NULL,closeButton=FALSE)
-          }
-         else {
-          removeNotification(id="noProperAnnotFile")}
-        variables$annot <- annotOut
-        }
-      )
       
       # select columns
       output$columnSelectors <- renderUI({
@@ -198,7 +185,7 @@ importServer <- function(id="import", variables){
       })
       
       # preview raw input file
-      output$pePreview <- shiny::renderDataTable({
+      output$pePreview <- DT::renderDataTable({
         req(variables$pe)
       
         DT::datatable(
@@ -207,14 +194,6 @@ importServer <- function(id="import", variables){
         )
       })
       
-      # preview QFeatures — show the assay matrix
-      output$qfeaturesPreview <- shiny::renderDataTable({
-        req(variables$qfeatures)
-        DT::datatable(
-          as.data.frame(SummarizedExperiment::assay(variables$qfeatures[[1]])),
-          options = list(scrollX = TRUE)
-        )
-      })
       
       #name input summarized experiment, only showing for maxquant and other
       output$nameInput <- renderUI({
@@ -257,18 +236,7 @@ importServer <- function(id="import", variables){
         }
         
         pe
-      })
-      
-      # add annotation table to the QFeatures
-      observeEvent(input$addAnnot, {
-        req(variables$qfeatures)
-        req(variables$annot)
-        
-        annot <- as.data.frame(variables$annot)
-        rownames(annot) <- annot[,1]
-        SummarizedExperiment::colData(variables$qfeatures) <- annot
-        
-        showNotification("Annotation added successfully", type = "message")
+       
       })
       
       # store in variables
@@ -277,22 +245,64 @@ importServer <- function(id="import", variables){
         variables$qfeatures <- qfeatures()
       })
       
+      #extract datapath of annotation file
+      annotDatapath <- metaReactive({getDataPath(..(input$annot$datapath))})
+      
+      #import the annotation file
+      observeEvent({input$annot},{
+        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE))
+        if (inherits(annotOut, "try-error")) {
+          showNotification("Upload proper annotation file",id="noProperAnnotFile",type="error",duration=NULL,closeButton=FALSE)
+        }
+        else {
+          removeNotification(id="File not valid. Rownames must match the sample names of the QFeatures object")}
+        variables$annot <- annotOut
+      }
+      )
+      
+      
+      observe({
+        req(variables$qfeatures)
+        
+        variables$annot_tmp <- data.frame(
+        sampleName = rownames(colData(variables$qfeatures)),
+        row.names  = rownames(colData(variables$qfeatures))
+      )}
+      )
+      
       # write in csv the runCol with sample annotation
       output$printed_annot <- downloadHandler(
-        filename = function() "annotation.csv",
+        filename = "annotation.csv",
         content  = function(file) {
-          req(variables$qfeatures)
-          sampleNames <- unlist(lapply(seq_along(variables$qfeatures), function(i) {
-            colnames(variables$qfeatures[[i]])
-          }))
           
-          annot <- data.frame(
-            sampleName = sampleNames,
-            row.names  = sampleNames
-          )
-          write.csv(annot, file, row.names = TRUE)  
-        }
+          write.csv(variables$annot_tmp, file)  
+          
+        },
+        contentType = "text/csv"
       )
+      
+      # add annotation table to the QFeatures
+      observeEvent(input$addAnnot, {
+        req(variables$qfeatures)
+        req(variables$annot)
+        
+        annot <- as.data.frame(variables$annot)
+        rownames(annot) <- annot[,1]
+        
+        qf <- variables$qfeatures
+        sampleNames <- rownames(colData(qf) ) # might be S4 — check below
+        
+        annot <- annot[sampleNames, , drop = FALSE]
+        
+        SummarizedExperiment::colData(qf) <- annot
+        
+        variables$qfeatures <- qf
+        
+        showNotification("Annotation added successfully", type = "message")
+      })
+      
+      
+      
       
       output$qfeaturesSummary <- renderPrint({
         req(variables$qfeatures)
@@ -302,7 +312,8 @@ importServer <- function(id="import", variables){
       return(
         list(
           qfeatures = reactive(variables$qfeatures)
-        )
+      )
+
       )
     }
   )
