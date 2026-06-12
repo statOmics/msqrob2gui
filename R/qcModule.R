@@ -8,7 +8,7 @@
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
-#' @importFrom DT dataTableOutput
+#' @importFrom shiny dataTableOutput
 
 
 qcUI <- function(id="qc")

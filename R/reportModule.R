@@ -48,12 +48,12 @@ reportUI <- function(id="report")
 #' @rdname INTERNAL_inferenceServer
 #' @keywords internal
 #'
-reportServer <- function(id="report", variables, importServerInput, modelServerInput, inferenceServerInput){
+reportServer <- function(id="report", variables, importServerInput,preprocessingServerInput, modelServerInput, inferenceServerInput){
   moduleServer(
     id,
     function(input,output,session){
       #make input variables for the report
-      selectedAssay <- metaReactive({..(inputServerInput$selectedAssay())}, varname = "selectedAssay")
+      #selectedAssay <- metaReactive({..(importServerInput$selectedAssay())}, varname = "selectedAssay")
       form <- metaReactive({..(modelServerInput$designFormula())}, varname = "form")
       doRidge <- metaReactive({..(modelServerInput$doRidge())}, varname = "doRidge")
       doRobust <- metaReactive({..(modelServerInput$doRobust())}, varname = "doRobust")

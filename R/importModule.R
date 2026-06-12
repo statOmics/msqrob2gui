@@ -8,7 +8,7 @@
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
-#' @importFrom DT dataTableOutput
+#' @importFrom shiny dataTableOutput
 
 
 importUI <- function(id="import")
@@ -198,7 +198,7 @@ importServer <- function(id="import", variables){
       })
       
       # preview raw input file
-      output$pePreview <- DT::renderDataTable({
+      output$pePreview <- shiny::renderDataTable({
         req(variables$pe)
       
         DT::datatable(
@@ -208,7 +208,7 @@ importServer <- function(id="import", variables){
       })
       
       # preview QFeatures — show the assay matrix
-      output$qfeaturesPreview <- DT::renderDataTable({
+      output$qfeaturesPreview <- shiny::renderDataTable({
         req(variables$qfeatures)
         DT::datatable(
           as.data.frame(SummarizedExperiment::assay(variables$qfeatures[[1]])),
@@ -277,7 +277,7 @@ importServer <- function(id="import", variables){
         variables$qfeatures <- qfeatures()
       })
       
-      # write in csv the run col with sample annotation
+      # write in csv the runCol with sample annotation
       output$printed_annot <- downloadHandler(
         filename = function() "annotation.csv",
         content  = function(file) {

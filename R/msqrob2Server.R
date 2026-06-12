@@ -20,6 +20,8 @@ msqrob2Server <- function(input, output, session) {
                                      selectedLowLevelAssay = NULL) #Has to be done globally
 
   importServerInput <- importServer(variables = global_variables)
+  
+  preprocessingServerInput <- preprocessingServer(variables = global_variables)
 
   modelServerInput <- modelServer(variables = global_variables)
 
@@ -28,6 +30,7 @@ msqrob2Server <- function(input, output, session) {
 
   reportServerInput <- reportServer(variables = global_variables,
                                importServerInput = importServerInput,
+                               preprocessingServerInput = preprocessingServerInput,
                                modelServerInput = modelServerInput,
                                inferenceServerInput = inferenceServerInput)
 
