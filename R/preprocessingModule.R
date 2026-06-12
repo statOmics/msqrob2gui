@@ -49,7 +49,7 @@ preprocessingUI <- function(id="preprocessing")
                tags$label("Log2-transfrom", `for`="log"),
                fluidRow(
                  column(4, actionButton(NS(id, "log"),"Apply log2 transformation")),
-                 column(3, textInput(NS(id, "nameLogAssay"), "Name Log-transformed Experiment"))
+                 column(3, textInput(NS(id, "nameLogAssay"), "Name logtransformed Experiment"))
                )
              )
            ),
