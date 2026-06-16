@@ -22,15 +22,18 @@ msqrob2Server <- function(input, output, session) {
   importServerInput <- importServer(variables = global_variables)
   
   preprocessingServerInput <- preprocessingServer(variables = global_variables)
-
+  
+  qcServerInput <- qcServer(variables = global_variables)
+  
   modelServerInput <- modelServer(variables = global_variables)
 
-  inferenceServerInput <- inferenceServer(variables = global_variables,
-                                          importServerInput = importServerInput)
+  inferenceServerInput <- inferenceServer(variables = global_variables
+                                          )
 
   reportServerInput <- reportServer(variables = global_variables,
                                importServerInput = importServerInput,
                                preprocessingServerInput = preprocessingServerInput,
+                               qcServerInput =qcServerInput,
                                modelServerInput = modelServerInput,
                                inferenceServerInput = inferenceServerInput)
 

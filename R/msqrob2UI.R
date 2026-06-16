@@ -10,8 +10,7 @@ msqrob2UI <- dashboardPage(
     sidebarMenu(
       menuItem("Import", tabName = "import"),
       menuItem("Preprocessing", tabName = "preprocessing"),
-    #  menuItem("Summarisation", tabName = "summarisation"),
-     # menuItem("Quality control", tabName = "qc"),
+      menuItem("Quality control", tabName = "qc"),
       menuItem("Model", tabName = "model"),
       menuItem("Inference", tabName = "inference"),
       menuItem("Report", tabName = "report")
@@ -22,8 +21,7 @@ msqrob2UI <- dashboardPage(
       # First tab content
       tabItem(tabName = "import",importUI()),
       tabItem(tabName = "preprocessing",preprocessingUI()),
-    #  tabItem(tabName = "summarisation",summarisationUI()),
-    #  tabItem(tabName = "qc",qcUI()),
+      tabItem(tabName = "qc",qcUI()),
       tabItem(tabName="model",modelUI()),
       tabItem(tabName="inference", inferenceUI()),
       tabItem(tabName="report", reportUI())

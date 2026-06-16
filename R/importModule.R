@@ -74,6 +74,12 @@ importUI <- function(id="import")
            ),
            div(
              list(
+               tags$label("Annotation file preview"),
+               DT::dataTableOutput(NS(id, "annotPreview"),)
+             )
+           ),
+           div(
+             list(
                tags$label("QFeatures summary"),
                verbatimTextOutput(NS(id, "qfeaturesSummary"))
              )
@@ -301,6 +307,16 @@ importServer <- function(id="import", variables){
         showNotification("Annotation added successfully", type = "message")
       })
       
+      # preview annotation input file
+      output$annotPreview <- DT::renderDataTable({
+        req(variables$qfeatures)
+        req(variables$annot)
+        
+        DT::datatable(
+          head(variables$annot, 5),  
+          options = list(scrollX = TRUE)
+        )
+      })
       
       
       

@@ -17,30 +17,24 @@ qcUI <- function(id="qc")
     column(width=12,
            div(
              list(tags$label("QFeatures input RDS file", `for`="pe"),
-                  # tags$button("button_pe", tags$sup("[?]")),
                   fileInput(inputId=NS(id,"pe"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
-                  # hidden(
                     helpText(
                       id="tooltip_qfeatures",
                       "Specify the location of the RDS file that contains
-                           your qfeatures object."
+                           your QFeatures object."
                     )
-                  #) # close hidden
              )
            ),
            div(
              list(
                tags$label("Select Assay", `for`="selectAssay"),
-               #tags$button("button_selectedAssay", tags$sup("[?]")),
                uiOutput(NS(id,"selectAssay")),
-               #hidden(
+               
                  helpText(id = "tooltip_select_assay",
                           "Select the QFeatures assay for the differential analysis.
         	                      ")
-               #) #close hidden
              )
            ),
-    #), end column
     # column(width=8,
            box(
              title = "QFeatures Preview",
@@ -63,17 +57,15 @@ qcUI <- function(id="qc")
            div(
              list(
                tags$label("Select variable", `for`="selectVariable"),
-               #tags$button("button_selectedVariable", tags$sup("[?]")),
                uiOutput(NS(id,"selectVariable")),
-               #hidden(
+               
                helpText(id = "tooltip_select_assay",
                         "Select variable to color data in plots
         	                      ")
-               #) #close hidden
              )
            ),
           uiOutput(NS(id,'densityPlot')),
-          uiOutput(NS(id,'pcaPlot')),
+          #uiOutput(NS(id,'pcaPlot')),
           div(
             list(
               br(),
@@ -115,12 +107,12 @@ qcServer <- function(id="qc", variables){
           showNotification("Upload proper QFeatures RDS file",id="noProperRDSFile",type="error",duration=NULL,closeButton=FALSE)
         } else {
           removeNotification(id="noProperRDSFile")}
-        variables$pe <- peOut
+        variables$qfeatures <- peOut
       })
 
       # get assay names and colData variable names
-      assayNamesPe <- reactive(names(variables$pe))
-      colDataNames <- reactive(names(colData(variables$pe)))
+      assayNamesPe <- reactive(names(variables$qfeatures))
+      colDataNames <- reactive(names(colData(variables$qfeatures)))
 
       # select assay
       output$selectAssay<- renderUI({
@@ -140,13 +132,13 @@ qcServer <- function(id="qc", variables){
         error_handler(
           qfeatures_to_df,
           component_name = "qfeatures_to_df",
-          variables$pe
+          variables$qfeatures
         )
       })
 
       output$qfeaturesTable <- DT::renderDataTable({
         DT::datatable(qfeatures_df(),
-                      extensions = "FixedColumns",
+                      #extensions = "FixedColumns",
                       selection = "single",
                       options = list(
                         searching = FALSE,
@@ -163,8 +155,8 @@ qcServer <- function(id="qc", variables){
         if (!is.null(input$selectedAssay)) {
           row <- input$selectedAssay
           DT::datatable(
-            data.frame(assay(variables$pe[[row]])),
-            extensions = "FixedColumns",
+            data.frame(assay(variables$qfeatures[[row]])),
+            #extensions = "FixedColumns",
             options = list(
               searching = FALSE,
               scrollX = TRUE,
@@ -178,7 +170,7 @@ qcServer <- function(id="qc", variables){
 
       output$densityPlot <- renderUI(
         renderPlot(
-          plotDensities(variables$pe,
+          plotDensities(variables$qfeatures,
                         input$selectedAssay,
                         input$selectedVariable)
           )
@@ -186,15 +178,15 @@ qcServer <- function(id="qc", variables){
 
       ### PCA plot
 
-      output$pcaPlot <- renderUI(
-        {
-          renderPlot(
-            plotPCA(variables$pe,
-                    input$selectedAssay,
-                    input$selectedVariable)
-            )
-        }
-        )
+      # output$pcaPlot <- renderUI(
+      #   {
+      #     renderPlot(
+      #       plotPCA(variables$qfeatures,
+      #               input$selectedAssay,
+      #               input$selectedVariable)
+      #       )
+      #   }
+      #   )
       return(
         list(
           selectedAssay = reactive(input$selectedAssay),

@@ -341,7 +341,7 @@ plotDensities <- function(pe, assayName, varName)
     as.data.frame() |>
     gather(sample, intensity) |>
     mutate({{varName}}:=colData(pe)[sample,varName]) |>
-    ggplot(aes_string(x="intensity",group="sample",col=varName)) +
+    ggplot(aes_string(x="intensity",group="sample",col=factor(varName))) +
     geom_density()
 }
 

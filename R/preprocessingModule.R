@@ -35,21 +35,27 @@ preprocessingUI <- function(id="preprocessing")
            ),
            
            div(
-             style = "display: flex; align-items: center; gap: 10px;",
-             tags$label("Filter missing values", `for` = "filter_na"),
-             actionButton(NS(id, "filter_na"), "Filter features with many missing values"),
-             div(style = "width: 100px;", numericInput(NS(id, "threshold"), "Value",value = NULL, min =0)),
-             helpText(id = "tooltip_filter_na",
-                      "The button removes the features with a proportion of missing values above the provided threshold.")
+             list(
+               tags$label("Filter missing values", `for` = "filter_na"),
+               fluidRow(
+                 style = "display: flex; align-items: center; gap: 10px;",
+                 column(2, numericInput(NS(id, "threshold"), "Threshold", value = NULL, min = 0, max = 1)),
+                 column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "filter_na"), "Filter",class = "control-label", style = "display: block;"))
+               ),
+               helpText(id = "tooltip_filter_na",
+                        "The button removes the features with a proportion of missing values above the provided threshold.")
+             )
            ),
+           
            uiOutput(NS(id, "pepsPerProtCol")),
            
            div(
              list(
-               tags$label("Log2-transfrom", `for`="log"),
+               tags$label("Log2-transform", `for`="log"),
                fluidRow(
-                 column(4, actionButton(NS(id, "log"),"Apply log2 transformation")),
-                 column(3, textInput(NS(id, "nameLogAssay"), "Name logtransformed Experiment"))
+                 style = "display: flex; align-items: center;",
+                 column(3, actionButton(NS(id, "log"),"Apply log2 transformation")),
+                 column(5, textInput(NS(id, "nameLogAssay"), "Name log transformed Experiment"))
                )
              )
            ),
@@ -122,12 +128,14 @@ preprocessingServer <- function(id="preprocessing", variables){
         list(
           tags$label("Add filter"),
           fluidRow(
-            column(4, selectizeInput(NS(id, "filterCol"), "Column", choices = rdCols)),
-            column(3, selectInput(NS(id, "filterOp"), "Operator", 
+            style = "display: flex; align-items: center;",
+            column(3, selectizeInput(NS(id, "filterCol"), "Column", choices = rdCols)),
+            column(2, selectInput(NS(id, "filterOp"), "Operator", 
                                   choices = c("==","!=","<",">","<=",">=", "%in%"))),
-            column(3, textInput(NS(id, "filterVal"), "Value")),
-            column(2, actionButton(NS(id, "addFilter"), "Add"))
+            column(2, textInput(NS(id, "filterVal"), "Value")),
+            column(3, tags$label(HTML("&nbsp;")),actionButton(NS(id, "addFilter"), "Add"), class = "control-label", style = "display: block;")
           ),
+          
           uiOutput(NS(id, "FilterList")),
           actionButton(NS(id, "clearFilters"), "Clear all filters"),
           actionButton(NS(id, "perform_filter"), "Apply selected filtering options")
@@ -184,8 +192,9 @@ preprocessingServer <- function(id="preprocessing", variables){
         list(
           tags$label("Select fcol to join the assays"),
           fluidRow(
-            column(4, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols)),
-            column(3, textInput(NS(id, "nameAssay"), "Name Summarized Experiment"))
+            style = "display: flex; align-items: center;",
+            column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols)),
+            column(5, textInput(NS(id, "nameAssay"), "Name Summarized Experiment"))
           )
         )
         })
@@ -222,12 +231,13 @@ preprocessingServer <- function(id="preprocessing", variables){
           rdCols <- colnames(rd)
           
           list(
-            tags$label("Filter proteins"),
+            tags$label("Filter proteins by number of mapping features"),
             fluidRow(
+              style = "display: flex; align-items: center;",
               column(4, selectizeInput(NS(id, "precursorCol"), "Precursors Id", choices = rdCols)),
               column(3, selectizeInput(NS(id, "proteinCol"),  "Protein Id", choices = rdCols)),
               column(2, numericInput(NS(id, "nprec"), "Min precursors", value = 1, min = 0)),
-              column(2, actionButton(NS(id, "countPepsPerProt"), "Count"))
+              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "countPepsPerProt"), "Filter",class = "control-label", style = "display: block;"))
             )
           )
         })
@@ -284,14 +294,15 @@ preprocessingServer <- function(id="preprocessing", variables){
           list(
             tags$label("Normalisation"),
             fluidRow(
-              column(4, selectInput(NS(id, "normMethod"), "Normalisation method", 
+              style = "display: flex; align-items: center;",
+              column(3, selectInput(NS(id, "normMethod"), "Normalisation method", 
                                        choices = c("sum","max",
                                                    "center.mean","center.median",
                                                    "div.mean","div.median",
                                                    "diff.median","quantiles",
                                                    "quantiles.robust", "Median of Ratios"))),
-              column(2, textInput(NS(id, "nameNormAssay"), "Name normalised assay")),
-              column(2, actionButton(NS(id, "perform_norm"), "Normalise"))
+              column(3, textInput(NS(id, "nameNormAssay"), "Name normalised assay")),
+              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_norm"), "Normalise",, class = "control-label", style = "display: block;"))
             )
           )
         })
@@ -332,13 +343,14 @@ preprocessingServer <- function(id="preprocessing", variables){
           list(
             tags$label("Aggregation"),
             fluidRow(
-              column(4, selectInput(NS(id, "aggrMethod"), "Aggregation method", 
+              style = "display: flex; align-items: center;",
+              column(3, selectInput(NS(id, "aggrMethod"), "Aggregation method", 
                                     choices = c("medianPolish","robustSummary",
                                                 "colMeans","colMedians",
                                                 "colSums","maxLFQ"))),
-              column(4, selectizeInput(NS(id, "fCol"), "Aggregation column", choices = rdCols)),
-              column(2, textInput(NS(id, "nameAggrAssay"), "Name aggregated assay")),
-              column(2, actionButton(NS(id, "perform_aggr"), "Aggregate"))
+              column(3, selectizeInput(NS(id, "fCol"), "Aggregation column", choices = rdCols)),
+              column(3, textInput(NS(id, "nameAggrAssay"), "Name aggregated assay")),
+              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_aggr"), "Aggregate",, class = "control-label", style = "display: block;"))
             )
           )
         })
