@@ -17,6 +17,14 @@ preprocessingUI <- function(id="preprocessing")
     column(width=12,
            div(
              list(
+               tags$label("Restore QFeatures", `for`="restore_qf"),
+               actionButton(NS(id, "restore_qf"),"Restore the QFeature object from the import tab."),
+               helpText(id = "tooltip_qf",
+                        "The button restores the QFeatures object from the import tab, without the filtering options applied so far.")
+             )
+           ),
+           div(
+             list(
                tags$label("Convert NAs", `for`="zero_to_na"),
                actionButton(NS(id, "zero_to_na"),"Convert zero values to NAs"),
                helpText(id = "tooltip_na",
@@ -106,6 +114,23 @@ preprocessingServer <- function(id="preprocessing", variables){
   moduleServer(
     id,
     function(input,output,session){
+      
+      #copy qfeatures start object to restore it if needed
+      
+      observeEvent(variables$qfeatures, {
+        if (is.null(variables$qfeatures_import)) {
+          variables$qfeatures_import <- variables$qfeatures
+        }
+      }, once = TRUE)
+      
+      # button restore qf
+      observeEvent(input$restore_qf,{
+        req(variables$qfeatures_import)
+        
+        variables$qfeatures <- variables$qfeatures_import
+        showNotification("QFeatures restored from import", type = "message")
+        
+      })
      
       # convert zeros to na
       observeEvent(input$zero_to_na, {

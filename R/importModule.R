@@ -251,6 +251,7 @@ importServer <- function(id="import", variables){
       observe({
         req(qfeatures())
         variables$qfeatures <- qfeatures()
+        variables$software <- input$software
       })
       
       #extract datapath of annotation file
@@ -331,7 +332,8 @@ importServer <- function(id="import", variables){
       
       return(
         list(
-          qfeatures = reactive(variables$qfeatures)
+          qfeatures = reactive(variables$qfeatures),
+          software = reactive(variables$software)
       )
 
       )
