@@ -125,6 +125,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     observeEvent(variables$qfeatures, {
       if (is.null(variables$qfeatures_import)) {
         variables$qfeatures_import <- variables$qfeatures
+        variables$qf_tmp <- NULL
       }
     }, once = TRUE)
 
@@ -213,13 +214,16 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           "Lib.PG.Q.Value <= 0.01"
         ),
         "spectronaut" = list(
-          "EG_IsDecoy == FALSE",
-          "PEP_IsProteotypic == TRUE",
+          "EG_IsDecoy %in% c(FALSE, 'False', '0')",
+          "PEP_IsProteotypic %in% c(TRUE, 'True', '1')",
           "EG_Qvalue <= 0.01",
           "PG_Qvalue <= 0.01",
-          "EG_IsImputed == FALSE"
+          "EG_IsImputed %in% c(FALSE, 'False', '0')"
         ),
-        "maxquant"    = list(),
+        "maxquant" = list(
+          "Proteins != ''",
+          "Reverse != '+'"
+        ),
         "other"       = list(),
         list()
       ))
@@ -258,8 +262,8 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           variables$nameLogAssayDefault      <- "quants_log"
           variables$normMethodDefault        <- "Median of Ratios"
           variables$nameNormAssayDefault     <- "quants_norm"
-          variables$aggrMethodDefault        <- "robustSummary"
-          variables$aggrColDefault           <- NULL
+          variables$aggrMethodDefault        <- "maxLFQ"
+          variables$aggrColDefault           <- "Proteins"
           variables$nameAggrAssayDefault     <- "proteins"
           variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
           variables$nprecDefault             <- 1
@@ -269,9 +273,9 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           variables$nameAssayDefault         <- "quants"
           variables$nameFilterNAAssayDefault <- "quants_filter_na"
           variables$nameLogAssayDefault      <- "quants_log"
-          variables$normMethodDefault        <- "center.median"
+          variables$normMethodDefault        <- "Median of Ratios"
           variables$nameNormAssayDefault     <- "quants_norm"
-          variables$aggrMethodDefault        <- "robustSummary"
+          variables$aggrMethodDefault        <- "maxLFQ"
           variables$aggrColDefault           <- NULL
           variables$nameAggrAssayDefault     <- "proteins"
           variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
@@ -380,8 +384,13 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Filter NA ----
     observeEvent(input$test_filter_na, {
-      req(variables$qf_tmp, input$nameAssay, input$threshold, input$nameFilterNAAssay)
-      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, input$nameAssay, input$nameFilterNAAssay, input$threshold))
+      req(variables$qf_tmp, input$threshold, input$nameFilterNAAssay)
+      filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+        input$nameAssay
+      } else {
+        names(variables$qf_tmp)[1]
+      }
+      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, filterNA_i, input$nameFilterNAAssay, input$threshold))
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "error", duration = 5)
       } else {
@@ -495,8 +504,13 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       }
 
       # Step 4: filter NA
-      req(input$nameAssay, input$nameFilterNAAssay)
-      qf <- try(stepFilterNA(qf, input$nameAssay, input$nameFilterNAAssay, input$threshold))
+      req(input$nameFilterNAAssay)
+      filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+        input$nameAssay
+      } else {
+        names(variables$qf_tmp)[1]
+      }      
+      qf <- try(stepFilterNA(qf, filterNA_i, input$nameFilterNAAssay, input$threshold))
       if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
 
       # Step 5: log transform
