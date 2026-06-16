@@ -123,7 +123,7 @@ importServer <- function(id="import", variables){
       observeEvent({input$pe},{
         peOut <- try(arrow::read_parquet(file=peDatapath()))
         if (inherits(peOut, "try-error")) {
-          peOut <- try(data.table::fread(file=peDatapath()))
+          peOut <- try(data.table::fread(file=peDatapath(), check.names = TRUE, integer64 = "double"))
           
           if (inherits(peOut, "try-error")){
             showNotification("Upload proper input file",id="noProperFile",type="error",duration=NULL,closeButton=FALSE)
