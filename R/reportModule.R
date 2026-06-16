@@ -72,6 +72,20 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
         content = function(file) {
           peOut <- variables$qfeatures
           saveRDS(peOut,"qfeaturesFile.rds")
+
+          # Copy raw input and annotation files so they are bundled in the zip
+          include_files <- "qfeaturesFile.rds"
+
+          if (!is.null(variables$rawFilePath) && file.exists(variables$rawFilePath)) {
+            file.copy(variables$rawFilePath, variables$rawFileName, overwrite = TRUE)
+            include_files <- c(include_files, variables$rawFileName)
+          }
+
+          if (!is.null(variables$annotFilePath) && file.exists(variables$annotFilePath)) {
+            file.copy(variables$annotFilePath, variables$annotFileName, overwrite = TRUE)
+            include_files <- c(include_files, variables$annotFileName)
+          }
+
           input <- expandChain(
             quote({
               qfeaturesFile <- "qfeaturesFile.rds"
@@ -110,7 +124,7 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
               report = report
               ),
             render=FALSE,
-            include_files = c("qfeaturesFile.rds")
+            include_files = include_files
             )
           })
     })

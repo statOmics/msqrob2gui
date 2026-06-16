@@ -124,14 +124,16 @@ importServer <- function(id="import", variables){
         peOut <- try(arrow::read_parquet(file=peDatapath()))
         if (inherits(peOut, "try-error")) {
           peOut <- try(data.table::fread(file=peDatapath(), check.names = TRUE, integer64 = "double"))
-          
+
           if (inherits(peOut, "try-error")){
             showNotification("Upload proper input file",id="noProperFile",type="error",duration=NULL,closeButton=FALSE)
           }
-          
+
         } else {
           removeNotification(id="File Not Valid")}
         variables$pe <- peOut
+        variables$rawFilePath <- input$pe$datapath
+        variables$rawFileName <- input$pe$name
       })
       
       
@@ -256,13 +258,15 @@ importServer <- function(id="import", variables){
       
       #import the annotation file
       observeEvent({input$annot},{
-        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE))
+        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE, integer64 = "double"))
         if (inherits(annotOut, "try-error")) {
           showNotification("Upload proper annotation file",id="noProperAnnotFile",type="error",duration=NULL,closeButton=FALSE)
         }
         else {
           removeNotification(id="File not valid. Rownames must match the sample names of the QFeatures object")}
         variables$annot <- annotOut
+        variables$annotFilePath <- input$annot$datapath
+        variables$annotFileName <- input$annot$name
       }
       )
       
