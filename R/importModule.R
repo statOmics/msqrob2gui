@@ -124,14 +124,16 @@ importServer <- function(id="import", variables){
         peOut <- try(arrow::read_parquet(file=peDatapath()))
         if (inherits(peOut, "try-error")) {
           peOut <- try(data.table::fread(file=peDatapath(), check.names = TRUE, integer64 = "double"))
-          
+
           if (inherits(peOut, "try-error")){
             showNotification("Upload proper input file",id="noProperFile",type="error",duration=NULL,closeButton=FALSE)
           }
-          
+
         } else {
           removeNotification(id="File Not Valid")}
         variables$pe <- peOut
+        variables$rawFilePath <- input$pe$datapath
+        variables$rawFileName <- input$pe$name
       })
       
       
@@ -157,7 +159,7 @@ importServer <- function(id="import", variables){
                       maxquant = list(
                         fnames   = "Sequence",
                         runCol   = NULL,
-                        quantCol = grep("Intensity ", cols, value = TRUE)
+                        quantCol = grep("Intensity.", cols, value = TRUE)
                       ),
                       other = list(
                         fnames   = NULL,
@@ -205,8 +207,8 @@ importServer <- function(id="import", variables){
       output$nameInput <- renderUI({
         if (input$software %in% c("maxquant", "other")) {
           div(list(
-            tags$label("Name summarized experiment"),
-            textInput(NS(id, "name"), label = NULL, value = "precursors"),
+            tags$label("Set name"),
+            textInput(NS(id, "name"), label = NULL, value = "quants_initial"),
             helpText("Assign a name to the summarized experiment.")
           ))
         }
@@ -249,6 +251,7 @@ importServer <- function(id="import", variables){
       observe({
         req(qfeatures())
         variables$qfeatures <- qfeatures()
+        variables$software <- input$software
       })
       
       #extract datapath of annotation file
@@ -256,13 +259,15 @@ importServer <- function(id="import", variables){
       
       #import the annotation file
       observeEvent({input$annot},{
-        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE))
+        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE, integer64 = "double"))
         if (inherits(annotOut, "try-error")) {
           showNotification("Upload proper annotation file",id="noProperAnnotFile",type="error",duration=NULL,closeButton=FALSE)
         }
         else {
           removeNotification(id="File not valid. Rownames must match the sample names of the QFeatures object")}
         variables$annot <- annotOut
+        variables$annotFilePath <- input$annot$datapath
+        variables$annotFileName <- input$annot$name
       }
       )
       
@@ -271,17 +276,16 @@ importServer <- function(id="import", variables){
         req(variables$qfeatures)
         
         variables$annot_tmp <- data.frame(
-        sampleName = rownames(colData(variables$qfeatures)),
-        row.names  = rownames(colData(variables$qfeatures))
+        sampleName = rownames(colData(variables$qfeatures))
       )}
       )
       
       # write in csv the runCol with sample annotation
       output$printed_annot <- downloadHandler(
-        filename = "annotation.csv",
+        filename = "annotation.tsv",
         content  = function(file) {
           
-          write.csv(variables$annot_tmp, file)  
+          write.csv(variables$annot_tmp, file,sep = "\t")  
           
         },
         contentType = "text/csv"
@@ -327,7 +331,8 @@ importServer <- function(id="import", variables){
       
       return(
         list(
-          qfeatures = reactive(variables$qfeatures)
+          qfeatures = reactive(variables$qfeatures),
+          software = reactive(variables$software)
       )
 
       )
