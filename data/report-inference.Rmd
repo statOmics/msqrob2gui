@@ -1,0 +1,214 @@
+---
+title: "Dynamic Report on statistical modeling to infer differential abundance in MS-based proteomics using the msqrob2gui App"
+author: "msqrob2gui"
+date: "Developed by [statOmics](https://statomics.github.io)"
+output:
+    html_document:
+      code_download: true
+      theme: cosmo
+      toc: true
+      toc_float: true
+      highlight: tango
+      number_sections: true
+    pdf_document:
+      toc: true
+      number_sections: true
+linkcolor: blue
+urlcolor: blue
+citecolor: blue
+
+---
+
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
+
+
+# Background
+Describe data here. 
+
+The following packages are needed for this report 
+
+```{r, warning=FALSE, message=FALSE}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(limma)
+library(QFeatures)
+library(msqrob2)
+library(knitr)
+})
+```
+
+# Input parameters copied from msqrob2gui
+
+Initialize all input parameters used in the GUI. 
+
+## Input tab
+
+```{r}
+{{input}}
+```
+
+Specification of qfeature file  Note that the qfeature file is copied to the zip file for the report and is named
+qfeaturesFile.rds respectively. 
+
+
+
+
+## Model tab
+
+```{r}
+{{model}}
+doRidge <- ifelse(doRidge=="1", TRUE, FALSE)
+doRobust <- ifelse(doRobust=="1", TRUE, FALSE)
+```
+
+- The data are modelled using the following formula: form=`r form`
+
+- The parameters are estimated using robust ridge regression if the argument doRidge equals TRUE, otherwise robust regresion without ridge penalization. Here, doRidge=`r doRidge`
+
+## Inference tab
+
+```{r}
+{{inference}}
+```
+
+- The statistical test assesses the null hypothesis specified using the following contrast for each summarized features: `r contrast`.
+- Summarized features are returned as significant using the $\alpha=`r sigLevel`$ FDR-level.
+
+
+## Report Tab
+
+In the report lists of significant proteins and volcano plots are given. 
+
+# Data import 
+
+We first import the data from FeaturesFile.txt file. This is the file containing
+your raw Feature-level intensities. 
+
+To import the data we use the `QFeatures` package.
+
+```{r}
+qf <- readRDS(qfeaturesFile)
+```
+
+# Data Analysis
+
+## Estimation
+
+We model the summarized feature level expression values using `msqrob`.
+By default `msqrob2` estimates the model parameters using robust regression.
+
+We will model the data using following formula
+
+```{r}
+as.formula(form)
+```
+
+```{r, warning=FALSE}
+qf <- msqrob(object = qf, i = selectedAssay, formula = as.formula(form), ridge = doRidge, robust = doRobust, overwrite=TRUE)
+```
+
+## Inference
+
+We can also explore the design of the model that we specified using the the package `ExploreModelMatrix` 
+
+```{r}
+library(ExploreModelMatrix)
+
+if (any(grepl("\\|",attr(terms(as.formula(form)), "term.labels")))){
+        visDesign <- VisualizeDesign(colData(qf),update(as.formula(form), as.formula(paste("~. -",paste0("(",attr(terms(as.formula(form)), "term.labels")[grepl("\\|", attr(terms(as.formula(form)), "term.labels"))], ")")))))
+} else {
+        visDesign <- VisualizeDesign(colData(qf),form)
+}
+
+visDesign$plotlist
+```
+
+The following contrast(s) will be assessed for each summarized feature:
+
+```{r}
+contrast
+```
+
+```{r}
+
+if(doRidge==1 ){
+    #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
+    parameter_names <- paste0("ridge",colnames(visDesign[[3]]))
+    parameter_names <- gsub("ridge(Intercept)", "(Intercept)",parameter_names)
+} else {
+    parameter_names <- colnames(visDesign[[3]])
+}
+
+L <- makeContrast(
+  contrast,
+  parameterNames = parameter_names
+  )
+
+qf <- hypothesisTest(object = qf, i = selectedAssay, contrast = L, overwrite = TRUE)
+```
+
+All `r ncol(L)` contrast(s) above are assessed automatically in this single call to `hypothesisTest`.
+
+## Results 
+
+For every contrast we report a table the significant features at the `r sigLevel` FDR-level.
+
+```{r, results='asis', warning=FALSE, message=FALSE}
+inferences <- 
+  msqrobCollect(qf[["proteins"]], L) 
+
+for (j in colnames(L)) {
+
+  inference <- inferences |> 
+    dplyr::filter(adjPval < sigLevel & contrast == j)
+
+  cat("**Median - Contrast:**", j, "= 0 (", nrow(inference),
+      "significant precursors)\n\n")
+
+  cat('<div style="max-height:300px; overflow-y:auto;">')
+
+  print(
+    kable(
+      inference |>
+        dplyr::arrange(pval) |>
+        dplyr::relocate(feature),
+      row.names = FALSE
+    )
+  )
+
+  cat('</div>')
+
+  cat("\n\n\n---\n\n")
+}
+```
+
+Next, we make volcanoplots for each contrast
+
+```{r}
+plotVolcano(inferences, significanceLevel = sigLevel) + 
+  facet_wrap(~contrast) + 
+  labs(title = "DA features")
+```
+
+
+Plot of the number of significant features per contrast: 
+
+```{r}
+inferences |> 
+  filter(adjPval < sigLevel) |> 
+  mutate(DA = sign(logFC) |> as.factor() |> recode("-1"= "down","1" = "up")) |>
+  group_by(contrast, DA) |> 
+  ggplot(aes(x = contrast)) +
+  geom_bar(aes(fill = factor(DA)),
+           colour = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+# Session Info
+
+With respect to reproducibility, it is highly recommended to include a session info in your script so that readers of your output can see your particular setup of R. 
+
+```{r}
+sessionInfo()
+```

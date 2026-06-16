@@ -91,7 +91,7 @@ modelServer <- function(id="model", variables){
 
       ## Pass variable names in coldata to UI
       output$selectFixed <- renderUI({
-        h4(paste(colnames(colData(variables$pe)),collapse="\n"))
+        h4(paste(colnames(colData(variables$qfeatures)),collapse="\n"))
       })
 
       ## Visualise design
@@ -101,9 +101,9 @@ modelServer <- function(id="model", variables){
           modFixed <- as.formula(input$designFormula)
           for (mixedTerms in paste0("(",attr(terms(modFixed), "term.labels")[grepl("\\|", attr(terms(as.formula(modFixed)), "term.labels"))], ")"))
             modFixed <- update(as.formula(modFixed), as.formula(paste("~. -",mixedTerms)))
-          out <- VisualizeDesign(colData(getWithColData(variables$pe,variables$selectedAssay)),modFixed)
+          out <- VisualizeDesign(colData(getWithColData(variables$qfeatures,variables$selectedAssay)),modFixed)
           } else {
-          out <- VisualizeDesign(colData(getWithColData(variables$pe,variables$selectedAssay)),input$designFormula)
+          out <- VisualizeDesign(colData(getWithColData(variables$qfeatures,variables$selectedAssay)),input$designFormula)
         }
 
         ### Evaluate model
@@ -153,11 +153,11 @@ modelServer <- function(id="model", variables){
           text = "Fitting models..."
         )
 
-        peOut <- variables$pe
+        peOut <- variables$qfeatures
         peOut <- try(msqrob(object=peOut,i=variables$selectedAssay, formula=stats::as.formula(input$designFormula),overwrite=TRUE, robust=input$doRobust==1, ridge=input$doRidge==1))
 
         if (class(peOut)=="QFeatures") {
-          variables$pe <- peOut
+          variables$qfeatures <- peOut
           if(input$doRidge==1){
             #Intercept is not penalized, this way we get the correct parameter names of the fixed effects
             parameterNames <- paste0("ridge",colnames(visDesign()[[3]]))
@@ -168,12 +168,13 @@ modelServer <- function(id="model", variables){
             variables$parameterNames <- parameterNames
           }
           variables$formula <- input$designFormula
+          variables$doRidge <- input$doRidge
         }
         remove_modal_spinner()
       })
 
       ## Make data matrix
-      output$annotationDataMatrix <- DT::renderDT(as.data.frame(colData(variables$pe)))
+      output$annotationDataMatrix <- DT::renderDT(as.data.frame(colData(variables$qfeatures)))
 
       ## Return input variables for other modules
       return(

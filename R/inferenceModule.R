@@ -16,13 +16,16 @@ inferenceUI <- function(id="inference")
              h4(htmlOutput(NS(id,"modelParams"))),
              div(
                list(
-                 tags$label("Null hypothesis"),
-                 #tags$button(id="button_contrast", tags$sup("[?]")),
-                 shiny::textInput(NS(id,"contrast"), label=NULL,""),
+                 tags$label("Add contrast"),
+                 fluidRow(
+                   style = "display: flex; align-items: center;",
+                   column(8, textInput(NS(id, "contrastFormula"), label = NULL, value = "", placeholder = "e.g. treatmentB = 0")),
+                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addContrast"), "Add"), class = "control-label", style = "display: block;")
+                 ),
                  #hidden(
                    helpText(id="tooltip_contrast",
-                            "Formulate null hypothesis in terms of a (linear combination) of the model parameters.
-                  The name of the model parameters (intercept and slopes) are indicated above the Null Hypothesis Field.
+                            "Formulate a null hypothesis in terms of a (linear combination) of the model parameters and click 'Add' to add it to the list of contrasts.
+                  The name of the model parameters (intercept and slopes) are indicated above.
                   They are also included in the Model tab in the plot for Visualize Design.
                   In the Visualize Design plot every group mean of the experimental design is given.
                   A contrast is the difference between group means, which typically is a linear combination of the slope terms in the linear model.
@@ -30,9 +33,26 @@ inferenceUI <- function(id="inference")
                   In R the stimulus A will be the reference class and its group mean will be modelled with the intercept of the linear model: ‘(intercept)’.
                   The group mean for stimulus B will then be modelled using the sum of the intercept and its corresponding slope named ‘treatmentB’: ‘(intercept)+treatmentB’.
                   If the intensities are log2 transformed, the average log2 fold change between stimulus B and stimulus A will then be equalt to the slope: ‘treatmentB’.
-                  Assessing if the log2 FC is equal to 0, involves nulhypothesis ‘treatmentB = 0’. Note, that the quotes have to be removed when inputting this in the field Null Hypothesis."
-                   )
+                  Assessing if the log2 FC is equal to 0, involves nulhypothesis ‘treatmentB = 0’. Note, that the quotes have to be removed when inputting this in the field.
+                  You can add several contrasts to the list; they will all be tested automatically in a single hypothesis testing step when you click 'Test all contrasts'."
+                   ),
                  #) #end hidden
+                 tags$label("Add all pairwise contrasts for a factor variable"),
+                 fluidRow(
+                   style = "display: flex; align-items: center;",
+                   column(8, selectizeInput(NS(id, "pairwiseVar"), label = NULL, choices = NULL)),
+                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addPairwiseContrasts"), "Add all pairwise contrasts"), class = "control-label", style = "display: block;")
+                 ),
+                 helpText(id = "tooltip_pairwiseVar",
+                          "Select a factor variable from the design and click 'Add all pairwise contrasts' to add a contrast for every pairwise comparison between its levels to the list below.
+                  The variable must be a factor (or character) variable that is included in the model formula as a main effect; this will not work for numeric variables or for variables that are only involved in an interaction term."
+                          ),
+                 uiOutput(NS(id, "contrastListUI")),
+                 fluidRow(
+                   column(4, actionButton(NS(id, "clearContrasts"), "Clear all contrasts")),
+                   column(4, actionButton(NS(id, "runContrasts"), "Test all contrasts", class = "btn-primary"))
+                 ),
+                 selectInput(NS(id, "selectedContrast"), label = "Select contrast to display below", choices = NULL)
                )
              ),
 
@@ -92,19 +112,19 @@ inferenceUI <- function(id="inference")
                     ),
                     plotOutput(NS(id,"boxplotFC"), height = 200)
                     )
-             ),
-    fluidRow(h3("DetailPlots")),
-    fluidRow(column(width=4,
-                    htmlOutput(NS(id,"selectedLowLevelAssay")),
-                    htmlOutput(NS(id,"selectColDetailPlot2")),
-                    htmlOutput(NS(id,"selectHorizontalDetailPlot2")),
-                    htmlOutput(NS(id,"selectVerticalDetailPlot2"))
-    ),
-    column(width=8,
-           h4("Select one feature in the volcano plot or in the table of the inference tab to visualize the expression values"),
-           uiOutput(NS(id,"detailPlots"))
-    )
-    )
+             )#,
+#    fluidRow(h3("DetailPlots")),
+#    fluidRow(column(width=4,
+#                    htmlOutput(NS(id,"selectedLowLevelAssay")),
+#                    htmlOutput(NS(id,"selectColDetailPlot2")),
+#                    htmlOutput(NS(id,"selectHorizontalDetailPlot2")),
+#                    htmlOutput(NS(id,"selectVerticalDetailPlot2"))
+#    ),
+#    column(width=8,
+#           h4("Select one feature in the volcano plot or in the table of the inference tab to visualize the expression values"),
+#           uiOutput(NS(id,"detailPlots"))
+#    )
+#    )
   )
 }
 
@@ -122,12 +142,12 @@ inferenceServer <- function(id="inference", variables, importServerInput){
     id,
     function(input,output,session){
       # extract assayNames
-      assayNamesPe <- reactive(names(variables$pe))
+      assayNamesPe <- reactive(names(variables$qfeatures))
 
       # extract names colData
       plotDependentVars <- reactive({
-        if (!is.null(variables$pe))
-          as.list(c("none",colnames(colData(variables$pe))))
+        if (!is.null(variables$qfeatures))
+          as.list(c("none",colnames(colData(variables$qfeatures))))
         })
 
       output$modelParams <- renderUI({paste(variables$parameterNames,collapse=" \n")})
@@ -135,13 +155,86 @@ inferenceServer <- function(id="inference", variables, importServerInput){
       # range plots
       ranges <- reactiveValues(x = NULL, y = NULL)
 
-      # generate resultTable for contrast
+      # store the list of contrast formulas added by the user
+      contrastList <- reactiveVal(character(0))
+
+      observeEvent(input$addContrast, {
+        req(input$contrastFormula)
+        contrastList(c(contrastList(), input$contrastFormula))
+        updateTextInput(session, "contrastFormula", value = "")
+      })
+
+      output$contrastListUI <- renderUI({
+        contrasts <- contrastList()
+        if (length(contrasts) == 0) return(NULL)
+        tags$ul(
+          lapply(contrasts, function(f) tags$li(f))
+        )
+      })
+
+      observeEvent(input$clearContrasts, {
+        contrastList(character(0))
+      })
+
+      # keep the factor variable choices for pairwise contrasts up to date with the data
+      observe({
+        req(variables$qfeatures)
+        updateSelectizeInput(session, "pairwiseVar", choices = colnames(colData(variables$qfeatures)))
+      })
+
+      # build all pairwise contrasts for the selected factor variable and add
+      # them to the same contrast list used for manually added contrasts
+      observeEvent(input$addPairwiseContrasts, {
+        req(input$pairwiseVar, variables$qfeatures, variables$formula)
+
+        coldata <- colData(MultiAssayExperiment::getWithColData(variables$qfeatures, variables$selectedAssay))
+        newContrasts <- try(
+          createPairwiseContrasts(
+            formula = as.formula(variables$formula),
+            coldata = coldata,
+            var = input$pairwiseVar,
+            ridge = isTRUE(variables$doRidge == "1")
+          ),
+          silent = TRUE
+        )
+
+        if (inherits(newContrasts, "try-error")) {
+          showNotification(conditionMessage(attr(newContrasts, "condition")), type = "error")
+          return()
+        }
+
+        contrastList(unique(c(contrastList(), newContrasts)))
+        showNotification(paste(length(newContrasts), "pairwise contrast(s) added for", input$pairwiseVar), type = "message")
+      })
+
+      # build the contrast matrix for all formulas in the list and test them
+      # in a single hypothesisTest call, so all contrasts are assessed automatically
+      observeEvent(input$runContrasts, {
+        req(length(contrastList()) > 0)
+
+        contrast <- try(makeContrast(contrastList(), parameterNames = variables$parameterNames), silent = TRUE)
+        if (inherits(contrast, "try-error")) {
+          showNotification("Could not parse the contrasts, please check the syntax.", type = "error")
+          return()
+        }
+
+        qfOut <- try(hypothesisTest(variables$qfeatures, i = variables$selectedAssay, contrast, overwrite = TRUE), silent = TRUE)
+        if (inherits(qfOut, "try-error")) {
+          showNotification("Hypothesis testing failed for one or more contrasts.", type = "error")
+          return()
+        }
+
+        variables$qfeatures <- qfOut
+        updateSelectInput(session, "selectedContrast", choices = colnames(contrast), selected = colnames(contrast)[1])
+        showNotification(paste(ncol(contrast), "contrast(s) tested"), type = "message")
+      })
+
+      # generate resultTable for the contrast selected for display
       dataAll <- reactive({
-        output$modelParams <- renderUI({paste(variables$parameterNames,collapse=" \n")})
-        contrast <- makeContrast(input$contrast,parameterNames= variables$parameterNames)
-        try(variables$pe <- hypothesisTest(variables$pe, i=variables$selectedAssay, contrast, overwrite=TRUE))
-        data <- rowData(variables$pe[[variables$selectedAssay]])[,colnames(contrast)] |>  arrange(pval)
-        #data <- topFeatures(rowData(variables$pe[[variables$selectedAssay]])$msqrobModels,msqrob2::makeContrast(input$contrast,parameterNames= variables$parameterNames)[,1])
+        req(variables$qfeatures, input$selectedContrast)
+        data <- rowData(variables$qfeatures[[variables$selectedAssay]])[[input$selectedContrast]]
+        req(data)
+        data <- as.data.frame(data) |> arrange(pval)
         data$minusLog10Pval <- - log10(data$pval)
         return(data)
         })
@@ -235,98 +328,98 @@ inferenceServer <- function(id="inference", variables, importServerInput){
         proxy %>% DT::selectRows(NULL)
         })
 
-      ####################
-      ### Detail Plots
-      ####################
-
-      output$selectedLowLevelAssay<- renderUI({
-        div(
-          list(
-            tags$label("Select assays for detail plots", `for`="selectedLowLevelAssay"),
-            #tags$button(id="button_selectedLowLevelAssay", tags$sup("[?]")),
-            selectInput(
-              session$ns("selectedLowLevelAssay"),
-              NULL,
-              assayNamesPe(),
-              selected = variables$selectedLowLevelAssay,
-              multiple =TRUE,
-              width = '100%'),
-            #hidden(
-            helpText(id="tooltip_selectedLowLevelAssay","Select the variable by which the boxplots should be colored.")
-            #) #close hidden
-            )
-          )
-      })
-
-      output$selectColDetailPlot2 <- renderUI({
-        div(
-          list(
-            tags$label("Color variable", `for`="selColDetailPlot2"),
-            #tags$button(id="button_selColDetailPlot2", tags$sup("[?]")),
-            selectInput(session$ns("selColDetailPlot2"), label=NULL,  plotDependentVars()),
-            #hidden(
-            helpText(id="tooltip_selColDetailPlot2","Select the variable by which the boxplots should be colored.")
-            #) #close hidden
-          )
-        )
-      })
-
-      output$selectHorizontalDetailPlot2 <- renderUI({
-        div(
-          list(
-            tags$label("Horizontal split", `for`="selHorDetailPlot2"),
-            #tags$button(id="button_selHorDetailPlot2", tags$sup("[?]")),
-            selectInput(session$ns("selHorDetailPlot2"), label=NULL,  plotDependentVars()),
-            #hidden(
-            helpText(id="tooltip_selHorDetailPlot2","Select the variable by which the plots should be stratified horizontally. Select \'none\' to show all data in one plot.")
-            #) #close hidden
-          )
-        )
-      })
-
-      output$selectVerticalDetailPlot2 <- renderUI({
-        div(
-          list(
-            tags$label("Vertical split", `for`="selVertDetailPlot2"),
-            #tags$button(id="button_selVertDetailPlot2", tags$sup("[?]")),
-            selectInput(session$ns("selVertDetailPlot2"), label=NULL,  plotDependentVars()),
-            #hidden(
-            helpText(id="tooltip_selVertDetailPlot2","Select the variable by which the plots should be stratified vertically. Select \'none\' to show all data in one plot.")
-            #) #close hidden
-          )
-        )
-      })
-      observeEvent(input$selectedLowLevelAssay,
-                   {
-                     variables$selectedLowLevelAssay <- input$selectedLowLevelAssay
-                     }
-                   )
-
-      detailPlotHlp <- reactive(
-        makeDetailPlots(
-          variables$pe,
-          clickInfo,
-          detailServerInput = input,
-          inputServerInput = inputServerInput)
-        )
-
-      output$detailPlots <- renderUI(
-        lapply(
-          1:length(detailPlotHlp()),
-          function(j) renderPlot(detailPlotHlp()[[j]])
-          )
-        )
+      # ####################
+      # ### Detail Plots
+      # ####################
+      # 
+      # output$selectedLowLevelAssay<- renderUI({
+      #   div(
+      #     list(
+      #       tags$label("Select assays for detail plots", `for`="selectedLowLevelAssay"),
+      #       #tags$button(id="button_selectedLowLevelAssay", tags$sup("[?]")),
+      #       selectInput(
+      #         session$ns("selectedLowLevelAssay"),
+      #         NULL,
+      #         assayNamesPe(),
+      #         selected = variables$selectedLowLevelAssay,
+      #         multiple =TRUE,
+      #         width = '100%'),
+      #       #hidden(
+      #       helpText(id="tooltip_selectedLowLevelAssay","Select the variable by which the boxplots should be colored.")
+      #       #) #close hidden
+      #       )
+      #     )
+      # })
+      # 
+      # output$selectColDetailPlot2 <- renderUI({
+      #   div(
+      #     list(
+      #       tags$label("Color variable", `for`="selColDetailPlot2"),
+      #       #tags$button(id="button_selColDetailPlot2", tags$sup("[?]")),
+      #       selectInput(session$ns("selColDetailPlot2"), label=NULL,  plotDependentVars()),
+      #       #hidden(
+      #       helpText(id="tooltip_selColDetailPlot2","Select the variable by which the boxplots should be colored.")
+      #       #) #close hidden
+      #     )
+      #   )
+      # })
+      # 
+      # output$selectHorizontalDetailPlot2 <- renderUI({
+      #   div(
+      #     list(
+      #       tags$label("Horizontal split", `for`="selHorDetailPlot2"),
+      #       #tags$button(id="button_selHorDetailPlot2", tags$sup("[?]")),
+      #       selectInput(session$ns("selHorDetailPlot2"), label=NULL,  plotDependentVars()),
+      #       #hidden(
+      #       helpText(id="tooltip_selHorDetailPlot2","Select the variable by which the plots should be stratified horizontally. Select \'none\' to show all data in one plot.")
+      #       #) #close hidden
+      #     )
+      #   )
+      # })
+      # 
+      # output$selectVerticalDetailPlot2 <- renderUI({
+      #   div(
+      #     list(
+      #       tags$label("Vertical split", `for`="selVertDetailPlot2"),
+      #       #tags$button(id="button_selVertDetailPlot2", tags$sup("[?]")),
+      #       selectInput(session$ns("selVertDetailPlot2"), label=NULL,  plotDependentVars()),
+      #       #hidden(
+      #       helpText(id="tooltip_selVertDetailPlot2","Select the variable by which the plots should be stratified vertically. Select \'none\' to show all data in one plot.")
+      #       #) #close hidden
+      #     )
+      #   )
+      # })
+      # observeEvent(input$selectedLowLevelAssay,
+      #              {
+      #                variables$selectedLowLevelAssay <- input$selectedLowLevelAssay
+      #                }
+      #              )
+      # 
+      # detailPlotHlp <- reactive(
+      #   makeDetailPlots(
+      #     variables$qfeatures,
+      #     clickInfo,
+      #     detailServerInput = input,
+      #     inputServerInput = inputServerInput)
+      #   )
+      # 
+      # output$detailPlots <- renderUI(
+      #   lapply(
+      #     1:length(detailPlotHlp()),
+      #     function(j) renderPlot(detailPlotHlp()[[j]])
+      #     )
+      #   )
 
       # return input for other modules
       return(
         list(
-          contrast = reactive(input$contrast),
+          contrast = reactive(contrastList()),
           alpha = reactive(input$alpha),
           sigOnly = reactive(input$sigOnly),
-          selectedLowLevelAssay = reactive(input$selectedLowLevelAssay),
-          selColDetailPlot2 = reactive(input$selColDetailPlot2),
-          selHorDetailPlot2 = reactive(input$selHorDetailPlot2),
-          selVertDetailPlot2 = reactive(input$selVertDetailPlot2)
+          selectedLowLevelAssay = reactive(input$selectedLowLevelAssay)#,
+#          selColDetailPlot2 = reactive(input$selColDetailPlot2),
+#          selHorDetailPlot2 = reactive(input$selHorDetailPlot2),
+#          selVertDetailPlot2 = reactive(input$selVertDetailPlot2)
           )
         )
     })
