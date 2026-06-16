@@ -168,6 +168,7 @@ modelServer <- function(id="model", variables){
             variables$parameterNames <- parameterNames
           }
           variables$formula <- input$designFormula
+          variables$doRidge <- input$doRidge
         }
         remove_modal_spinner()
       })

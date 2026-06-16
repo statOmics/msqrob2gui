@@ -37,6 +37,16 @@ inferenceUI <- function(id="inference")
                   You can add several contrasts to the list; they will all be tested automatically in a single hypothesis testing step when you click 'Test all contrasts'."
                    ),
                  #) #end hidden
+                 tags$label("Add all pairwise contrasts for a factor variable"),
+                 fluidRow(
+                   style = "display: flex; align-items: center;",
+                   column(8, selectizeInput(NS(id, "pairwiseVar"), label = NULL, choices = NULL)),
+                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addPairwiseContrasts"), "Add all pairwise contrasts"), class = "control-label", style = "display: block;")
+                 ),
+                 helpText(id = "tooltip_pairwiseVar",
+                          "Select a factor variable from the design and click 'Add all pairwise contrasts' to add a contrast for every pairwise comparison between its levels to the list below.
+                  The variable must be a factor (or character) variable that is included in the model formula as a main effect; this will not work for numeric variables or for variables that are only involved in an interaction term."
+                          ),
                  uiOutput(NS(id, "contrastListUI")),
                  fluidRow(
                    column(4, actionButton(NS(id, "clearContrasts"), "Clear all contrasts")),
@@ -164,6 +174,37 @@ inferenceServer <- function(id="inference", variables, importServerInput){
 
       observeEvent(input$clearContrasts, {
         contrastList(character(0))
+      })
+
+      # keep the factor variable choices for pairwise contrasts up to date with the data
+      observe({
+        req(variables$qfeatures)
+        updateSelectizeInput(session, "pairwiseVar", choices = colnames(colData(variables$qfeatures)))
+      })
+
+      # build all pairwise contrasts for the selected factor variable and add
+      # them to the same contrast list used for manually added contrasts
+      observeEvent(input$addPairwiseContrasts, {
+        req(input$pairwiseVar, variables$qfeatures, variables$formula)
+
+        coldata <- colData(MultiAssayExperiment::getWithColData(variables$qfeatures, variables$selectedAssay))
+        newContrasts <- try(
+          createPairwiseContrasts(
+            formula = as.formula(variables$formula),
+            coldata = coldata,
+            var = input$pairwiseVar,
+            ridge = isTRUE(variables$doRidge == "1")
+          ),
+          silent = TRUE
+        )
+
+        if (inherits(newContrasts, "try-error")) {
+          showNotification(conditionMessage(attr(newContrasts, "condition")), type = "error")
+          return()
+        }
+
+        contrastList(unique(c(contrastList(), newContrasts)))
+        showNotification(paste(length(newContrasts), "pairwise contrast(s) added for", input$pairwiseVar), type = "message")
       })
 
       # build the contrast matrix for all formulas in the list and test them
