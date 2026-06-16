@@ -10,92 +10,100 @@
 #' @importFrom shinyBS bsTooltip
 #' @importFrom shiny dataTableOutput
 
-
-preprocessingUI <- function(id="preprocessing")
-{
+preprocessingUI <- function(id = "preprocessing") {
   fluidRow(
-    column(width=12,
-           div(
-             list(
-               tags$label("Restore QFeatures", `for`="restore_qf"),
-               actionButton(NS(id, "restore_qf"),"Restore the QFeature object from the import tab."),
-               helpText(id = "tooltip_qf",
-                        "The button restores the QFeatures object from the import tab, without the filtering options applied so far.")
-             )
-           ),
-           div(
-             list(
-               tags$label("Convert NAs", `for`="zero_to_na"),
-               actionButton(NS(id, "zero_to_na"),"Convert zero values to NAs"),
-               helpText(id = "tooltip_na",
-                        "The button converts all zero values into NA entries.")
-             )
-           ),
-           uiOutput(NS(id, "filtering")),
-           uiOutput(NS(id, "join")),
-           div(
-             list(
-               tags$label("Join assays", `for`="join"),
-               actionButton(NS(id, "join"),"Join the assays between runs"),
-               helpText(id = "tooltip_join",
-                        "The button joins the multiple assays of the QFeatures object in a single assay.")
-             )
-           ),
-           
-           div(
-             list(
-               tags$label("Filter missing values", `for` = "filter_na"),
-               fluidRow(
-                 style = "display: flex; align-items: center; gap: 10px;",
-                 column(2, numericInput(NS(id, "threshold"), "Threshold", value = NULL, min = 0, max = 1)),
-                 column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "filter_na"), "Filter",class = "control-label", style = "display: block;"))
-               ),
-               helpText(id = "tooltip_filter_na",
-                        "The button removes the features with a proportion of missing values above the provided threshold.")
-             )
-           ),
-           
-           uiOutput(NS(id, "pepsPerProtCol")),
-           
-           div(
-             list(
-               tags$label("Log2-transform", `for`="log"),
-               fluidRow(
-                 style = "display: flex; align-items: center;",
-                 column(3, actionButton(NS(id, "log"),"Apply log2 transformation")),
-                 column(5, textInput(NS(id, "nameLogAssay"), "Name log transformed Experiment"))
-               )
-             )
-           ),
-           uiOutput(NS(id, "normalisation")),
-           uiOutput(NS(id, "aggregation")),
-           div(
-             list(
-               tags$label("QFeatures summary"),
-               verbatimTextOutput(NS(id, "qfeaturesSummary"))
-             )
-           ),
-           div(
-             list(
-               tags$label("Export QFeatures object", `for`="rds_file"),
-               downloadButton(NS(id, "rds_file"),"Export QFeatures object"),
-               helpText(id = "tooltip_export_qf",
-                        "The button exports the preprocessed QFeatures object.")
-             )
-           ),
-           div(
-             list(
-               br(),
-               h4("How do I cite MSqRob?"),
-               h4("msqrob2 is free to use and  open source.
-            When making use of msqrob2, we would appreciate it if you could cite our two papers."),
-               h4("1. Sticker A, Goeminne L, Martens L, Clement L (2020). Robust Summarization and Inference in Proteome-wide Label-free Quantification. Molecular & Cellular Proteomics, 19(7), 1209-1219. doi: 10.1074/mcp.ra119.001624"),
-               h4("2. Goeminne L, Gevaert K, Clement L (2016). Peptide-level Robust Ridge Regression Improves Estimation, Sensitivity, and Specificity in Data-dependent Quantitative Label-free Shotgun Proteomics. Molecular & Cellular Proteomics, 15(2), 657-668. doi: 10.1074/mcp.m115.055897")
-             )
-           )
-    ) #end column
+    column(width = 12,
+
+      # --- Restore ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Restore"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(4, actionButton(NS(id, "restore_qf"), "Restore from import"))
+        ),
+        helpText("Resets the QFeatures object to the state at end of import.")
+      ),
+
+      # --- Zero to NA ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Convert zeros to NA"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(2, actionButton(NS(id, "test_zero_to_na"), "Test", class = "btn-info"))
+        ),
+        helpText("Converts all zero values to NA.")
+      ),
+
+      # --- Filters ---
+      uiOutput(NS(id, "filtering")),
+
+      # --- Join assays (only rendered when > 1 assay) ---
+      uiOutput(NS(id, "join")),
+
+      # --- Filter NA ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Filter missing values"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(2, numericInput(NS(id, "threshold"), "Threshold", value = 1, min = 0, max = 1)),
+          column(3, textInput(NS(id, "nameFilterNAAssay"), "Name", value = "quants_filter_na")),
+          column(2, actionButton(NS(id, "test_filter_na"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        ),
+        helpText("Removes features with proportion of missing values above threshold.")
+      ),
+
+      # --- Log transform ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Log2-transform"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(4, textInput(NS(id, "nameLogAssay"), "Name", value = "quants_log")),
+          column(2, actionButton(NS(id, "test_log"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        )
+      ),
+
+      # --- Normalisation ---
+      uiOutput(NS(id, "normalisation")),
+
+      # --- Aggregation ---
+      uiOutput(NS(id, "aggregation")),
+
+      # --- Filter NA post-aggregation ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Filter missing values (post-aggregation)"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(2, numericInput(NS(id, "threshold2"), "Threshold", value = 1, min = 0, max = 1)),
+          column(3, textInput(NS(id, "nameFilterNA2Assay"), "Name", value = "proteins_filter_na")),
+          column(2, actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        ),
+        helpText("Removes proteins with proportion of missing values above threshold.")
+      ),
+
+      # --- Run all ---
+      div(style = "margin-top: 20px; margin-bottom: 15px;",
+        actionButton(NS(id, "run_all"), "Run all steps", class = "btn-success btn-lg")
+      ),
+
+      # --- Summary ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("QFeatures summary"),
+        verbatimTextOutput(NS(id, "qfeaturesSummary"))
+      ),
+
+      # --- Export ---
+      div(style = "margin-bottom: 15px;",
+        tags$label("Export QFeatures object"),
+        downloadButton(NS(id, "rds_file"), "Export QFeatures object"),
+        helpText("Exports the preprocessed QFeatures object.")
+      ),
+
+      div(
+        br(),
+        h4("How do I cite MSqRob?"),
+        h4("msqrob2 is free to use and open source. When making use of msqrob2, we would appreciate it if you could cite our two papers."),
+        h4("1. Sticker A, Goeminne L, Martens L, Clement L (2020). Robust Summarization and Inference in Proteome-wide Label-free Quantification. Molecular & Cellular Proteomics, 19(7), 1209-1219. doi: 10.1074/mcp.ra119.001624"),
+        h4("2. Goeminne L, Gevaert K, Clement L (2016). Peptide-level Robust Ridge Regression Improves Estimation, Sensitivity, and Specificity in Data-dependent Quantitative Label-free Shotgun Proteomics. Molecular & Cellular Proteomics, 15(2), 657-668. doi: 10.1074/mcp.m115.055897")
+      )
+    )
   )
 }
+
 
 #' Server for preprocessing tab
 #'
@@ -110,390 +118,427 @@ preprocessingUI <- function(id="preprocessing")
 #' @importFrom MultiAssayExperiment getWithColData
 #' @importFrom DT datatable renderDataTable
 #'
-preprocessingServer <- function(id="preprocessing", variables){
-  moduleServer(
-    id,
-    function(input,output,session){
-      
-      #copy qfeatures start object to restore it if needed
-      
-      observeEvent(variables$qfeatures, {
-        if (is.null(variables$qfeatures_import)) {
-          variables$qfeatures_import <- variables$qfeatures
-        }
-      }, once = TRUE)
-      
-      # button restore qf
-      observeEvent(input$restore_qf,{
-        req(variables$qfeatures_import)
-        
-        variables$qfeatures <- variables$qfeatures_import
-        setDefaultFilters()
-        showNotification("QFeatures restored from import", type = "message")
-        
-      })
-     
-      # convert zeros to na
-      observeEvent(input$zero_to_na, {
-        req(variables$qfeatures)
-        
-        variables$qfeatures <- QFeatures::zeroIsNA(variables$qfeatures,
-                                                   i = names(variables$qfeatures))
-        
-        showNotification("Zero values converted to NA", type = "message")
-        
-      })
-    
-      # select filtering options
-      output$filtering <- renderUI({
-        req(variables$qfeatures)
-        
-        rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
-        rdCols <- colnames(rd)
-        
-        list(
-          tags$label("Add filter"),
-          fluidRow(
-            style = "display: flex; align-items: center;",
-            column(3, selectizeInput(NS(id, "filterCol"), "Column", choices = rdCols)),
-            column(2, selectInput(NS(id, "filterOp"), "Operator", 
-                                  choices = c("==","!=","<",">","<=",">=", "%in%"))),
-            column(2, textInput(NS(id, "filterVal"), "Value")),
-            column(3, tags$label(HTML("&nbsp;")),actionButton(NS(id, "addFilter"), "Add"), class = "control-label", style = "display: block;")
-          ),
-          
-          uiOutput(NS(id, "FilterList")),
-          actionButton(NS(id, "clearFilters"), "Clear all filters"),
-          actionButton(NS(id, "perform_filter"), "Apply selected filtering options")
-        )
-      })
-      
-      # store the filtering options provided
-      filterList <- reactiveVal(list())
-      
-      setDefaultFilters <- function() {
-        filterList(switch(variables$software,
-                          "diann" = list(
-                            "Precursor.Id != ''",
-                            "Proteotypic == 1",
-                            "Q.Value <= 0.01",
-                            "PG.Q.Value <= 0.01"
-                          ),
-                          "spectronaut" = list(),
-                          "maxquant"    = list(),
-                          "other"       = list(),
-                          list()
-        ))
-        
-        switch(variables$software,
-               "diann" = {
-                 # join assays
-                 variables$fColDefault        <- "Precursor.Id"
-                 variables$nameAssayDefault   <- "precursors"
-                 # filter by precursors per protein
-                 variables$precursorColDefault <- "Stripped.Sequence"
-                 variables$proteinColDefault   <- "Protein.Group"
-                 variables$nprecDefault        <- 1
-                 # log transform
-                 variables$nameLogAssayDefault  <- "precursors_log"
-                 # normalisation
-                 variables$normMethodDefault    <- "Median of Ratios"
-                 variables$nameNormAssayDefault <- "precursors_norm"
-                 # aggregation
-                 variables$aggrMethodDefault    <- "maxLFQ"
-                 variables$nameAggrAssayDefault <- "proteins"
-               },
-               {
-                 variables$fColDefault          <- NULL
-                 variables$nameAssayDefault     <- NULL
-                 variables$thresholdDefault     <- NULL
-                 variables$precursorColDefault  <- NULL
-                 variables$proteinColDefault    <- NULL
-                 variables$nprecDefault         <- NULL
-                 variables$nameLogAssayDefault  <- NULL
-                 variables$normMethodDefault    <- NULL
-                 variables$nameNormAssayDefault <- NULL
-                 variables$aggrMethodDefault    <- NULL
-                 variables$nameAggrAssayDefault <- NULL
-               }
+preprocessingServer <- function(id = "preprocessing", variables) {
+  moduleServer(id, function(input, output, session) {
+
+    # ---- Snapshot for restore ----
+    observeEvent(variables$qfeatures, {
+      if (is.null(variables$qfeatures_import)) {
+        variables$qfeatures_import <- variables$qfeatures
+      }
+    }, once = TRUE)
+
+    observeEvent(input$restore_qf, {
+      req(variables$qfeatures_import)
+      variables$qfeatures <- variables$qfeatures_import
+      setDefaultFilters()
+      updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
+      showNotification("QFeatures restored from import", type = "message")
+    })
+
+    # ---- Step functions ----
+    stepZeroToNA <- function(qf) {
+      QFeatures::zeroIsNA(qf, i = names(qf))
+    }
+
+    stepFilter <- function(qf, filters) {
+      formula_str <- paste(filters, collapse = " & ")
+      filter_formula <- as.formula(paste("~", formula_str))
+      QFeatures::filterFeatures(qf, filter_formula)
+    }
+
+    stepJoin <- function(qf, fCol, nameAssay) {
+      qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = fCol, name = nameAssay)
+      qf[, , nameAssay]
+    }
+
+    stepFilterNA <- function(qf, i, name, threshold) {
+      se <- QFeatures::filterNA(qf[, , i], i = i, pNA = threshold)[[i]]
+      QFeatures::addAssay(qf, se, name)
+    }
+
+    stepLog <- function(qf, i, name) {
+      QFeatures::logTransform(qf, base = 2, i = i, name = name)
+    }
+
+    stepNorm <- function(qf, normMethod, nameLogAssay, nameNormAssay) {
+      if (normMethod == "Median of Ratios") {
+        QFeatures::sweep(qf, MARGIN = 2,
+                         STATS = msqrob2::nfLogMedianOfRatios(qf, nameLogAssay),
+                         i = nameLogAssay, name = nameNormAssay)
+      } else {
+        QFeatures::normalize(qf, method = normMethod, i = nameLogAssay, name = nameNormAssay)
+      }
+    }
+
+    stepAggr <- function(qf, aggrMethod, nameNormAssay, aggrCol, nameAggrAssay, nprecFilter) {
+      aggFun <- if (aggrMethod == "maxLFQ") {
+        function(X) iq::maxLFQ(X)$estimate
+      } else {
+        switch(aggrMethod,
+          "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
+          "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
+          "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
+          "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
+          "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
         )
       }
-      
-      # set default filtering options
-      observeEvent(variables$software, {
-        setDefaultFilters()
-        updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
-      })
-      
-      observeEvent(input$addFilter, {
-        req(input$filterCol, input$filterOp, input$filterVal)
-        
-        newFilter <- paste(input$filterCol, input$filterOp, input$filterVal)
-        filterList(c(filterList(), newFilter))
-      })
-      
-      output$FilterList <- renderUI({
-        filters <- filterList()
-        if (length(filters) == 0) return(NULL)
-        
-        tags$ul(
-          lapply(filters, function(f) tags$li(f))
-        )
-      })
-      
-      # clear and restart the filtering options
-      observeEvent(input$clearFilters, {
-        filterList(list())
-      })
-      
-      # perform filtering upon pressing the button
-      observeEvent(input$perform_filter, {
-        req(variables$qfeatures)
-        req(length(filterList()) > 0)
-        
-        formula_str <- paste(filterList(), collapse = " & ")
-        filter_formula <- as.formula(paste("~", formula_str))
-        
-        variables$qfeatures <- QFeatures::filterFeatures(variables$qfeatures,
-                                                         filter_formula)
-        
-        showNotification("Filtering applied", type = "message")
-        
-      })
-      
-      
-      # joining assays
-      
+      qf <- QFeatures::aggregateFeatures(qf, i = nameNormAssay, name = nameAggrAssay,
+                                          fcol = aggrCol, fun = aggFun)
+      counts <- assay(qf[[nameAggrAssay]], "aggcounts")
+      a <- assay(qf[[nameAggrAssay]])
+      a[counts < nprecFilter] <- NA
+      assay(qf[[nameAggrAssay]]) <- a
+      qf
+    }
 
-        output$join <- renderUI({
-          req(variables$qfeatures)
-          
-          if (length(names(variables$qfeatures)) <= 1) return(NULL)
-          
-          rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
-          rdCols <- colnames(rd)
-          
-          list(
-            tags$label("Select fcol to join the assays"),
-            fluidRow(
-              style = "display: flex; align-items: center;",
-              column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
-              column(5, textInput(NS(id, "nameAssay"), "Name Summarized Experiment", value = variables$nameAssayDefault))
-            )
-          )
-        })
-      
-        observeEvent(input$join,{
-          req(input$fCol)
-          req(input$nameAssay)
-          variables$qfeatures <- QFeatures::joinAssays(variables$qfeatures,
-                                                       i = names(variables$qfeatures),
-                                                       fcol = input$fCol,
-                                                       name = input$nameAssay
-                                                      )
-          variables$qfeatures <- variables$qfeatures[, , input$nameAssay]
-          showNotification("Assays joined", type = "message")
-        })
-        
-        # Filter by proportion of missing values
-        observeEvent(input$filter_na,{
-          req(input$filter_na)
-          req(input$threshold)
-          
-          
-          variables$qfeatures <- QFeatures::filterNA(variables$qfeatures,
-                                                     i = names(variables$qfeatures),
-                                                     pNA = input$threshold)
-          showNotification("Missing values filtered", type = "message")
-          
-        })
-        
-        output$pepsPerProtCol <- renderUI({
-          req(variables$qfeatures)
-          
-          rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
-          rdCols <- colnames(rd)
-          
-          list(
-            tags$label("Filter proteins by number of mapping features"),
-            fluidRow(
-              style = "display: flex; align-items: center;",
-              column(4, selectizeInput(NS(id, "precursorCol"), "Precursors Id", choices = rdCols, selected = variables$precursorColDefault)),
-              column(3, selectizeInput(NS(id, "proteinCol"),  "Protein Id", choices = rdCols, selected = variables$proteinColDefault)),
-              column(2, numericInput(NS(id, "nprec"), "Min precursors", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 0)),
-              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "countPepsPerProt"), "Filter",class = "control-label", style = "display: block;"))
-            )
-          )
-        })
-        
-        # Filter by number of precursors mapping to a protein
-        observeEvent(input$countPepsPerProt,{
-          req(input$nprec)
-          req(input$precursorCol)
-          req(input$proteinCol)
-          
-          for (i in names(variables$qfeatures)) {
-            
-            rd <- SummarizedExperiment::rowData(variables$qfeatures[[i]]) |> 
-              as.data.frame()
-            
-            pepsPerProtDf <- rd |>
-              dplyr::select(dplyr::all_of(c(input$precursorCol, input$proteinCol))) |>
-              dplyr::group_by(.data[[input$proteinCol]]) |>
-              dplyr::mutate(pepsPerProt = .data[[input$precursorCol]] |> 
-                              unique() |> length()) |>
-              dplyr::ungroup()
-            
-            SummarizedExperiment::rowData(variables$qfeatures[[i]])$pepsPerProt <- 
-              pepsPerProtDf$pepsPerProt
-          }
-          
-          filter_formula <- as.formula(paste("~ pepsPerProt >", input$nprec))
-          variables$qfeatures <- QFeatures::filterFeatures(variables$qfeatures,
-                                                           i = names(variables$qfeatures),
-                                                           filter_formula,
-                                                           keep = TRUE
-                                                           )
-          showNotification("Proteins filtered", type = "message")
-        })
-        
-        # log transform
-        observeEvent(input$log, {
-          req(variables$qfeatures)
-          req(input$nameLogAssay)
-          
-          variables$qfeatures <- QFeatures::logTransform(variables$qfeatures,
-                                                         base =2,
-                                                        i = names(variables$qfeatures),
-                                                        name = input$nameLogAssay
-                                                        )
-          
-          showNotification("Applied log-transformation", type = "message")
-          
-        })
-        
-        # Normalisation
-        output$normalisation <- renderUI({
-          
-          list(
-            tags$label("Normalisation"),
-            fluidRow(
-              style = "display: flex; align-items: center;",
-              column(3, selectInput(NS(id, "normMethod"), "Normalisation method",
-                                       choices = c("sum","max",
-                                                   "center.mean","center.median",
-                                                   "div.mean","div.median",
-                                                   "diff.median","quantiles",
-                                                   "quantiles.robust", "Median of Ratios"),
-                                       selected = variables$normMethodDefault)),
-              column(3, textInput(NS(id, "nameNormAssay"), "Name normalised assay", value = variables$nameNormAssayDefault)),
-              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_norm"), "Normalise",, class = "control-label", style = "display: block;"))
-            )
-          )
-        })
-        
-        observeEvent(input$perform_norm,{
-          req(input$normMethod)
-          req(input$nameNormAssay)
-          req(input$nameLogAssay)
-          # remove existing assay with same name if present
-          if (input$nameNormAssay %in% names(variables$qfeatures)) {
-            variables$qfeatures <- variables$qfeatures[, , -which(names(variables$qfeatures) == input$nameNormAssay)]
-          }
-          
-          if(input$normMethod == "Median of Ratios"){
-            variables$qfeatures <- QFeatures::sweep( 
-              variables$qfeatures,
-              MARGIN = 2,
-              STATS = msqrob2::nfLogMedianOfRatios(variables$qfeatures, input$nameLogAssay),
-              i = input$nameLogAssay,
-              name = input$nameNormAssay
-            )
-          } else {
-            variables$qfeatures <- QFeatures::normalize( 
-              variables$qfeatures,
-              method = input$normMethod,
-              i = input$nameLogAssay,
-              name = input$nameNormAssay
-            )
-          }
-          showNotification("Applied normalisation", type = "message")
-        })
-        
-        # aggregation
-        output$aggregation <- renderUI({
-          rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
-          rdCols <- colnames(rd)
-          
-          list(
-            tags$label("Aggregation"),
-            fluidRow(
-              style = "display: flex; align-items: center;",
-              column(3, selectInput(NS(id, "aggrMethod"), "Aggregation method",
-                                    choices = c("medianPolish","robustSummary",
-                                                "colMeans","colMedians",
-                                                "colSums","maxLFQ"),
-                                    selected = variables$aggrMethodDefault)),
-              column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$proteinColDefault)),
-              column(3, textInput(NS(id, "nameAggrAssay"), "Name aggregated assay", value = variables$nameAggrAssayDefault)),
-              column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_aggr"), "Aggregate",, class = "control-label", style = "display: block;"))
-            )
-          )
-        })
-        
-        
-        observeEvent(input$perform_aggr,{
-          req(input$aggrMethod)
-          req(input$nameNormAssay)
-          req(input$aggrCol)
-          req(input$nameAggrAssay)
-          # remove existing assay with same name if present
-          if (input$nameAggrAssay %in% names(variables$qfeatures)) {
-            variables$qfeatures <- variables$qfeatures[, , -which(names(variables$qfeatures) == input$nameAggrAssay)]
-          }
-          
-          aggFun <- if (input$aggrMethod == "maxLFQ") {
-            function(X) iq::maxLFQ(X)$estimate
-          } else {
-            switch(input$aggrMethod,
-                   "medianPolish"  = function(X) MsCoreUtils::medianPolish(X,na.rm=TRUE),
-                   "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm=TRUE),
-                   "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
-                   "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
-                   "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
-            )
-            
-          }
-          
-          variables$qfeatures <- QFeatures::aggregateFeatures(
-            variables$qfeatures, i = input$nameNormAssay,
-            name = input$nameAggrAssay,
-            fcol = input$aggrCol,
-            fun = aggFun
-          )
-          showNotification("Features aggregated", type = "message")
-        })
-        
-        # print summary Qfeature object
-        output$qfeaturesSummary <- renderPrint({
-          req(variables$qfeatures)
-          variables$qfeatures
-        })
-        
-        output$rds_file <- downloadHandler(
-          filename = function() "qf.rds",
-          content  = function(file) {
-            req(variables$qfeatures)
-            saveRDS(variables$qfeatures,file)
-          }
-        )
-      
-      return(
-        list(
-          qfeatures = reactive(variables$qfeatures)
-        )
+
+    # ---- Helper: summarise dims ----
+    showDims <- function(qf) {
+      paste(sapply(names(qf), function(n) paste0(n, ": ", nrow(qf[[n]]), " features")), collapse = " | ")
+    }
+
+    # ---- Default filters ----
+    filterList <- reactiveVal(list())
+
+    setDefaultFilters <- function() {
+      filterList(switch(variables$software,
+        "diann" = list(
+          "Precursor.Id != ''",
+          "Decoy == 0",
+          "Proteotypic == 1",
+          "Q.Value <= 0.01",
+          "PG.Q.Value <= 0.01",
+          "Lib.Q.Value <= 0.01",
+          "Lib.PG.Q.Value <= 0.01"
+        ),
+        "spectronaut" = list(
+          "EG_IsDecoy == FALSE",
+          "PEP_IsProteotypic == TRUE",
+          "EG_Qvalue <= 0.01",
+          "PG_Qvalue <= 0.01",
+          "EG_IsImputed == FALSE"
+        ),
+        "maxquant"    = list(),
+        "other"       = list(),
+        list()
+      ))
+
+      switch(variables$software,
+        "diann" = {
+          variables$fColDefault              <- "Precursor.Id"
+          variables$nameAssayDefault         <- "quants"
+          variables$nameFilterNAAssayDefault <- "quants_filter_na"
+          variables$nameLogAssayDefault      <- "quants_log"
+          variables$normMethodDefault        <- "Median of Ratios"
+          variables$nameNormAssayDefault     <- "quants_norm"
+          variables$aggrMethodDefault        <- "maxLFQ"
+          variables$aggrColDefault           <- "Protein.Group"
+          variables$nameAggrAssayDefault     <- "proteins"
+          variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
+          variables$nprecDefault             <- 1
+        },
+        "spectronaut" = {
+          variables$fColDefault              <- "EG_PrecursorId"
+          variables$nameAssayDefault         <- "quants"
+          variables$nameFilterNAAssayDefault <- "quants_filter_na"
+          variables$nameLogAssayDefault      <- "quants_log"
+          variables$normMethodDefault        <- "Median of Ratios"
+          variables$nameNormAssayDefault     <- "quants_norm"
+          variables$aggrMethodDefault        <- "maxLFQ"
+          variables$aggrColDefault           <- "PG_ProteinGroups"
+          variables$nameAggrAssayDefault     <- "proteins"
+          variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
+          variables$nprecDefault             <- 1
+        },
+        "maxquant" = {
+          variables$fColDefault              <- NULL
+          variables$nameAssayDefault         <- "quants"
+          variables$nameFilterNAAssayDefault <- "quants_filter_na"
+          variables$nameLogAssayDefault      <- "quants_log"
+          variables$normMethodDefault        <- "Median of Ratios"
+          variables$nameNormAssayDefault     <- "quants_norm"
+          variables$aggrMethodDefault        <- "robustSummary"
+          variables$aggrColDefault           <- NULL
+          variables$nameAggrAssayDefault     <- "proteins"
+          variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
+          variables$nprecDefault             <- 1
+        },
+        "other" = {
+          variables$fColDefault              <- NULL
+          variables$nameAssayDefault         <- "quants"
+          variables$nameFilterNAAssayDefault <- "quants_filter_na"
+          variables$nameLogAssayDefault      <- "quants_log"
+          variables$normMethodDefault        <- "center.median"
+          variables$nameNormAssayDefault     <- "quants_norm"
+          variables$aggrMethodDefault        <- "robustSummary"
+          variables$aggrColDefault           <- NULL
+          variables$nameAggrAssayDefault     <- "proteins"
+          variables$nameFilterNA2AssayDefault <- "proteins_filter_na"
+          variables$nprecDefault             <- 1
+        }
       )
     }
-  )
-}
 
+    observeEvent(variables$software, {
+      setDefaultFilters()
+      updateTextInput(session, "nameFilterNAAssay", value = variables$nameFilterNAAssayDefault)
+      updateTextInput(session, "nameLogAssay",       value = variables$nameLogAssayDefault)
+      updateTextInput(session, "nameFilterNA2Assay", value = variables$nameFilterNA2AssayDefault)
+    })
+
+    # ---- Test: Zero to NA ----
+    observeEvent(input$test_zero_to_na, {
+      req(variables$qfeatures)
+      
+      variables$qf_tmp <- try(stepZeroToNA(variables$qfeatures))
+      
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+
+    })
+
+    # ---- Filtering UI ----
+    output$filtering <- renderUI({
+      req(variables$qfeatures)
+      rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
+      rdCols <- colnames(rd)
+      list(
+        tags$label("Add filter"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(3, selectizeInput(NS(id, "filterCol"), "Column", choices = rdCols)),
+          column(2, selectInput(NS(id, "filterOp"), "Operator",
+                                choices = c("==", "!=", "<", ">", "<=", ">=", "%in%"))),
+          column(2, textInput(NS(id, "filterVal"), "Value")),
+          column(1, actionButton(NS(id, "addFilter"), "Add", style = "margin-bottom: 0;")),
+          column(1, actionButton(NS(id, "test_filter"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        ),
+        uiOutput(NS(id, "FilterList")),
+        fluidRow(style = "margin-top: 5px;",
+          column(3, actionButton(NS(id, "clearFilters"), "Clear all filters"))
+        )
+      )
+    })
+
+    observeEvent(input$addFilter, {
+      req(input$filterCol, input$filterOp, input$filterVal)
+      newFilter <- paste(input$filterCol, input$filterOp, input$filterVal)
+      filterList(c(filterList(), newFilter))
+    })
+
+    output$FilterList <- renderUI({
+      filters <- filterList()
+      if (length(filters) == 0) return(NULL)
+      tags$ul(lapply(filters, function(f) tags$li(f)))
+    })
+
+    observeEvent(input$clearFilters, { filterList(list()) })
+
+    # ---- Test: Filter ----
+    observeEvent(input$test_filter, {
+      req(variables$qf_tmp)
+      req(length(filterList()) > 0)
+      variables$qf_tmp <- try(stepFilter(variables$qf_tmp, filterList()))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Join assays (only when > 1 assay) ----
+    output$join <- renderUI({
+      req(variables$qfeatures)
+      if (length(names(variables$qfeatures)) <= 1) return(NULL)
+      rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
+      rdCols <- colnames(rd)
+      list(
+        tags$label("Join assays"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
+          column(3, textInput(NS(id, "nameAssay"), "Name", value = variables$nameAssayDefault)),
+          column(2, actionButton(NS(id, "test_join"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        ),
+        helpText("Joins multiple assays into a single assay.")
+      )
+    })
+
+    # ---- Test: Join ----
+    observeEvent(input$test_join, {
+      req(variables$qf_tmp, input$fCol, input$nameAssay)
+      if (length(names(variables$qf_tmp)) <= 1) return(NULL)
+      variables$qf_tmp <- try(stepJoin(variables$qf_tmp, input$fCol, input$nameAssay))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Test: Filter NA ----
+    observeEvent(input$test_filter_na, {
+      req(variables$qf_tmp, input$nameAssay, input$threshold, input$nameFilterNAAssay)
+      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, input$nameAssay, input$nameFilterNAAssay, input$threshold))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "error", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Test: Log transform ----
+    observeEvent(input$test_log, {
+      req(variables$qf_tmp, input$nameFilterNAAssay, input$nameLogAssay)
+      variables$qf_tmp <- try(stepLog(variables$qf_tmp, input$nameFilterNAAssay, input$nameLogAssay))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "error", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Normalisation UI ----
+    output$normalisation <- renderUI({
+      list(
+        tags$label("Normalisation"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(3, selectInput(NS(id, "normMethod"), "Method",
+                                choices = c("sum", "max", "center.mean", "center.median",
+                                            "div.mean", "div.median", "diff.median",
+                                            "quantiles", "quantiles.robust", "Median of Ratios"),
+                                selected = variables$normMethodDefault)),
+          column(3, textInput(NS(id, "nameNormAssay"), "Name", value = if (!is.null(variables$nameNormAssayDefault)) variables$nameNormAssayDefault else "quants_norm")),
+          column(2, actionButton(NS(id, "test_norm"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        )
+      )
+    })
+
+    # ---- Test: Normalisation ----
+    observeEvent(input$test_norm, {
+      req(variables$qf_tmp, input$normMethod, input$nameLogAssay, input$nameNormAssay)
+      variables$qf_tmp <- try(stepNorm(variables$qf_tmp, input$normMethod, input$nameLogAssay, input$nameNormAssay))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Aggregation UI ----
+    output$aggregation <- renderUI({
+      req(variables$qfeatures)
+      rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
+      rdCols <- colnames(rd)
+      list(
+        tags$label("Aggregation"),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+          column(3, selectInput(NS(id, "aggrMethod"), "Method",
+                                choices = c("medianPolish", "robustSummary", "colMeans",
+                                            "colMedians", "colSums", "maxLFQ"),
+                                selected = variables$aggrMethodDefault)),
+          column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$aggrColDefault)),
+          column(2, textInput(NS(id, "nameAggrAssay"), "Name", value = variables$nameAggrAssayDefault)),
+          column(1, numericInput(NS(id, "nprecFilter"), "Min prec.", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
+          column(1, actionButton(NS(id, "test_aggr"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+        )
+      )
+    })
+
+    # ---- Test: Aggregation ----
+    observeEvent(input$test_aggr, {
+      req(variables$qf_tmp, input$aggrMethod, input$nameNormAssay, input$aggrCol, input$nameAggrAssay, input$nprecFilter)
+      variables$qf_tmp <- try(stepAggr(variables$qf_tmp, input$aggrMethod, input$nameNormAssay,
+                              input$aggrCol, input$nameAggrAssay, input$nprecFilter))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Test: Filter NA post-aggregation ----
+    observeEvent(input$test_filter_na2, {
+      req(variables$qf_tmp, input$threshold2, input$nameAggrAssay, input$nameFilterNA2Assay)
+      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, input$nameAggrAssay, input$nameFilterNA2Assay, input$threshold2))
+      if (inherits(variables$qf_tmp, "try-error")) {
+        showNotification("Test failed", type = "warning", duration = 5)
+      } else {
+        showNotification("Okay!", type = "message", duration = 5)
+      }
+    })
+
+    # ---- Run all ----
+    observeEvent(input$run_all, {
+      req(variables$qfeatures)
+      show_modal_spinner(spin = "cube-grid", color = "#112446", text = "Running all preprocessing steps...")
+
+      qf <- variables$qfeatures
+
+      # Step 1: zero to NA
+      qf <- try(stepZeroToNA(qf))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Zero to NA", type = "error"); return() }
+
+      # Step 2: filters
+      if (length(filterList()) > 0) {
+        qf <- try(stepFilter(qf, filterList()))
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filtering", type = "error"); return() }
+      }
+
+      # Step 3: join if multiple assays
+      if (length(names(qf)) > 1) {
+        req(input$fCol, input$nameAssay)
+        qf <- try(stepJoin(qf, input$fCol, input$nameAssay))
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Join assays", type = "error"); return() }
+      }
+
+      # Step 4: filter NA
+      req(input$nameAssay, input$nameFilterNAAssay)
+      qf <- try(stepFilterNA(qf, input$nameAssay, input$nameFilterNAAssay, input$threshold))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
+
+      # Step 5: log transform
+      req(input$nameLogAssay)
+      qf <- try(stepLog(qf, input$nameFilterNAAssay, input$nameLogAssay))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Log transform", type = "error"); return() }
+
+      # Step 6: normalisation
+      req(input$normMethod, input$nameNormAssay)
+      qf <- try(stepNorm(qf, input$normMethod, input$nameLogAssay, input$nameNormAssay))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Normalisation", type = "error"); return() }
+
+      # Step 7: aggregation
+      req(input$aggrMethod, input$aggrCol, input$nameAggrAssay, input$nprecFilter)
+      qf <- try(stepAggr(qf, input$aggrMethod, input$nameNormAssay, input$aggrCol, input$nameAggrAssay, input$nprecFilter))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Aggregation", type = "error"); return() }
+
+      # Step 8: filter NA post-aggregation
+      req(input$nameFilterNA2Assay)
+      qf <- try(stepFilterNA(qf, input$nameAggrAssay, input$nameFilterNA2Assay, input$threshold2))
+      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+
+      variables$qfeatures <- qf
+      remove_modal_spinner()
+      showNotification("All preprocessing steps completed successfully", type = "message")
+    })
+
+    # ---- Summary ----
+    output$qfeaturesSummary <- renderPrint({
+      req(variables$qfeatures)
+      variables$qfeatures
+    })
+
+    # ---- Export ----
+    output$rds_file <- downloadHandler(
+      filename = function() "qf.rds",
+      content  = function(file) {
+        req(variables$qfeatures)
+        saveRDS(variables$qfeatures, file)
+      }
+    )
+
+    return(list(qfeatures = reactive(variables$qfeatures)))
+  })
+}
