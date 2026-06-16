@@ -159,7 +159,7 @@ importServer <- function(id="import", variables){
                       maxquant = list(
                         fnames   = "Sequence",
                         runCol   = NULL,
-                        quantCol = grep("Intensity ", cols, value = TRUE)
+                        quantCol = grep("Intensity.", cols, value = TRUE)
                       ),
                       other = list(
                         fnames   = NULL,
@@ -207,8 +207,8 @@ importServer <- function(id="import", variables){
       output$nameInput <- renderUI({
         if (input$software %in% c("maxquant", "other")) {
           div(list(
-            tags$label("Name summarized experiment"),
-            textInput(NS(id, "name"), label = NULL, value = "precursors"),
+            tags$label("Set name"),
+            textInput(NS(id, "name"), label = NULL, value = "quants_initial"),
             helpText("Assign a name to the summarized experiment.")
           ))
         }
@@ -276,17 +276,16 @@ importServer <- function(id="import", variables){
         req(variables$qfeatures)
         
         variables$annot_tmp <- data.frame(
-        sampleName = rownames(colData(variables$qfeatures)),
-        row.names  = rownames(colData(variables$qfeatures))
+        sampleName = rownames(colData(variables$qfeatures))
       )}
       )
       
       # write in csv the runCol with sample annotation
       output$printed_annot <- downloadHandler(
-        filename = "annotation.csv",
+        filename = "annotation.tsv",
         content  = function(file) {
           
-          write.csv(variables$annot_tmp, file)  
+          write.csv(variables$annot_tmp, file,sep = "\t")  
           
         },
         contentType = "text/csv"

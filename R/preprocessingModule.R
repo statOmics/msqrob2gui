@@ -128,6 +128,7 @@ preprocessingServer <- function(id="preprocessing", variables){
         req(variables$qfeatures_import)
         
         variables$qfeatures <- variables$qfeatures_import
+        setDefaultFilters()
         showNotification("QFeatures restored from import", type = "message")
         
       })
@@ -170,6 +171,60 @@ preprocessingServer <- function(id="preprocessing", variables){
       # store the filtering options provided
       filterList <- reactiveVal(list())
       
+      setDefaultFilters <- function() {
+        filterList(switch(variables$software,
+                          "diann" = list(
+                            "Precursor.Id != ''",
+                            "Proteotypic == 1",
+                            "Q.Value <= 0.01",
+                            "PG.Q.Value <= 0.01"
+                          ),
+                          "spectronaut" = list(),
+                          "maxquant"    = list(),
+                          "other"       = list(),
+                          list()
+        ))
+        
+        switch(variables$software,
+               "diann" = {
+                 # join assays
+                 variables$fColDefault        <- "Precursor.Id"
+                 variables$nameAssayDefault   <- "precursors"
+                 # filter by precursors per protein
+                 variables$precursorColDefault <- "Stripped.Sequence"
+                 variables$proteinColDefault   <- "Protein.Group"
+                 variables$nprecDefault        <- 1
+                 # log transform
+                 variables$nameLogAssayDefault  <- "precursors_log"
+                 # normalisation
+                 variables$normMethodDefault    <- "Median of Ratios"
+                 variables$nameNormAssayDefault <- "precursors_norm"
+                 # aggregation
+                 variables$aggrMethodDefault    <- "maxLFQ"
+                 variables$nameAggrAssayDefault <- "proteins"
+               },
+               {
+                 variables$fColDefault          <- NULL
+                 variables$nameAssayDefault     <- NULL
+                 variables$thresholdDefault     <- NULL
+                 variables$precursorColDefault  <- NULL
+                 variables$proteinColDefault    <- NULL
+                 variables$nprecDefault         <- NULL
+                 variables$nameLogAssayDefault  <- NULL
+                 variables$normMethodDefault    <- NULL
+                 variables$nameNormAssayDefault <- NULL
+                 variables$aggrMethodDefault    <- NULL
+                 variables$nameAggrAssayDefault <- NULL
+               }
+        )
+      }
+      
+      # set default filtering options
+      observeEvent(variables$software, {
+        setDefaultFilters()
+        updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
+      })
+      
       observeEvent(input$addFilter, {
         req(input$filterCol, input$filterOp, input$filterVal)
         
@@ -208,22 +263,26 @@ preprocessingServer <- function(id="preprocessing", variables){
       
       
       # joining assays
-      output$join <- renderUI({
-        req(variables$qfeatures)
-        
-        rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
-        rdCols <- colnames(rd)
-        
-        list(
-          tags$label("Select fcol to join the assays"),
-          fluidRow(
-            style = "display: flex; align-items: center;",
-            column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols)),
-            column(5, textInput(NS(id, "nameAssay"), "Name Summarized Experiment"))
+      
+
+        output$join <- renderUI({
+          req(variables$qfeatures)
+          
+          if (length(names(variables$qfeatures)) <= 1) return(NULL)
+          
+          rd <- SummarizedExperiment::rowData(variables$qfeatures[[1]])
+          rdCols <- colnames(rd)
+          
+          list(
+            tags$label("Select fcol to join the assays"),
+            fluidRow(
+              style = "display: flex; align-items: center;",
+              column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
+              column(5, textInput(NS(id, "nameAssay"), "Name Summarized Experiment", value = variables$nameAssayDefault))
+            )
           )
-        )
         })
-        
+      
         observeEvent(input$join,{
           req(input$fCol)
           req(input$nameAssay)
@@ -259,9 +318,9 @@ preprocessingServer <- function(id="preprocessing", variables){
             tags$label("Filter proteins by number of mapping features"),
             fluidRow(
               style = "display: flex; align-items: center;",
-              column(4, selectizeInput(NS(id, "precursorCol"), "Precursors Id", choices = rdCols)),
-              column(3, selectizeInput(NS(id, "proteinCol"),  "Protein Id", choices = rdCols)),
-              column(2, numericInput(NS(id, "nprec"), "Min precursors", value = 1, min = 0)),
+              column(4, selectizeInput(NS(id, "precursorCol"), "Precursors Id", choices = rdCols, selected = variables$precursorColDefault)),
+              column(3, selectizeInput(NS(id, "proteinCol"),  "Protein Id", choices = rdCols, selected = variables$proteinColDefault)),
+              column(2, numericInput(NS(id, "nprec"), "Min precursors", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 0)),
               column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "countPepsPerProt"), "Filter",class = "control-label", style = "display: block;"))
             )
           )
@@ -320,13 +379,14 @@ preprocessingServer <- function(id="preprocessing", variables){
             tags$label("Normalisation"),
             fluidRow(
               style = "display: flex; align-items: center;",
-              column(3, selectInput(NS(id, "normMethod"), "Normalisation method", 
+              column(3, selectInput(NS(id, "normMethod"), "Normalisation method",
                                        choices = c("sum","max",
                                                    "center.mean","center.median",
                                                    "div.mean","div.median",
                                                    "diff.median","quantiles",
-                                                   "quantiles.robust", "Median of Ratios"))),
-              column(3, textInput(NS(id, "nameNormAssay"), "Name normalised assay")),
+                                                   "quantiles.robust", "Median of Ratios"),
+                                       selected = variables$normMethodDefault)),
+              column(3, textInput(NS(id, "nameNormAssay"), "Name normalised assay", value = variables$nameNormAssayDefault)),
               column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_norm"), "Normalise",, class = "control-label", style = "display: block;"))
             )
           )
@@ -369,12 +429,13 @@ preprocessingServer <- function(id="preprocessing", variables){
             tags$label("Aggregation"),
             fluidRow(
               style = "display: flex; align-items: center;",
-              column(3, selectInput(NS(id, "aggrMethod"), "Aggregation method", 
+              column(3, selectInput(NS(id, "aggrMethod"), "Aggregation method",
                                     choices = c("medianPolish","robustSummary",
                                                 "colMeans","colMedians",
-                                                "colSums","maxLFQ"))),
-              column(3, selectizeInput(NS(id, "fCol"), "Aggregation column", choices = rdCols)),
-              column(3, textInput(NS(id, "nameAggrAssay"), "Name aggregated assay")),
+                                                "colSums","maxLFQ"),
+                                    selected = variables$aggrMethodDefault)),
+              column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$proteinColDefault)),
+              column(3, textInput(NS(id, "nameAggrAssay"), "Name aggregated assay", value = variables$nameAggrAssayDefault)),
               column(2,tags$label(HTML("&nbsp;")), actionButton(NS(id, "perform_aggr"), "Aggregate",, class = "control-label", style = "display: block;"))
             )
           )
@@ -384,7 +445,7 @@ preprocessingServer <- function(id="preprocessing", variables){
         observeEvent(input$perform_aggr,{
           req(input$aggrMethod)
           req(input$nameNormAssay)
-          req(input$fCol)
+          req(input$aggrCol)
           req(input$nameAggrAssay)
           # remove existing assay with same name if present
           if (input$nameAggrAssay %in% names(variables$qfeatures)) {
@@ -405,9 +466,9 @@ preprocessingServer <- function(id="preprocessing", variables){
           }
           
           variables$qfeatures <- QFeatures::aggregateFeatures(
-            variables$qfeatures, i = input$nameNormAssay, 
+            variables$qfeatures, i = input$nameNormAssay,
             name = input$nameAggrAssay,
-            fcol = input$fCol, 
+            fcol = input$aggrCol,
             fun = aggFun
           )
           showNotification("Features aggregated", type = "message")
