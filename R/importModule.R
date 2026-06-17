@@ -69,7 +69,7 @@ importUI <- function(id="import")
                fileInput(inputId=NS(id,"annot"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
                actionButton(NS(id, "addAnnot"), "Add annotation"),
                helpText(id = "tooltip_annotation",
-                        "If available, upload the annotation file and click 'Add annotation'. The first column must match the samples' names of the QFeatures object.")
+                        "Upload the annotation file and click 'Add annotation'. The first column must match the sample names exactly. Grouping variables (e.g. condition) should be written as strings (e.g. 'D2', 'D4') so they are treated as factors. Numeric columns are kept as numeric.")
              )
            ),
            div(
@@ -259,7 +259,7 @@ importServer <- function(id="import", variables){
       
       #import the annotation file
       observeEvent({input$annot},{
-        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE, integer64 = "double"))
+        annotOut <- try(data.table::fread(file=annotDatapath(),check.names = TRUE, integer64 = "double",stringsAsFactors = TRUE))
         if (inherits(annotOut, "try-error")) {
           showNotification("Upload proper annotation file",id="noProperAnnotFile",type="error",duration=NULL,closeButton=FALSE)
         }
@@ -285,7 +285,7 @@ importServer <- function(id="import", variables){
         filename = "annotation.tsv",
         content  = function(file) {
           
-          write.table(variables$annot_tmp, file,sep = ";")  
+          write.table(variables$annot_tmp, file, sep = ";", row.names = FALSE)  
           
         },
         contentType = "text/csv"
@@ -295,19 +295,33 @@ importServer <- function(id="import", variables){
       observeEvent(input$addAnnot, {
         req(variables$qfeatures)
         req(variables$annot)
-        
-        annot <- as.data.frame(variables$annot)
-        rownames(annot) <- annot[,1]
-        
-        qf <- variables$qfeatures
-        sampleNames <- rownames(colData(qf) ) # might be S4 — check below
-        
+
+        annot       <- as.data.frame(variables$annot)
+        annotSamples <- annot[, 1]
+        qf           <- variables$qfeatures
+        sampleNames  <- rownames(colData(qf))
+
+        missing <- setdiff(sampleNames, annotSamples)
+        if (length(missing) > 0) {
+          showNotification(
+            paste("Annotation does not match sample names. Missing:", paste(missing, collapse = ", ")),
+            type = "error", duration = NULL
+          )
+          return()
+        }
+
+        rownames(annot) <- annot[, 1]
         annot <- annot[sampleNames, , drop = FALSE]
-        
-        SummarizedExperiment::colData(qf) <- annot
-        
+
+        # convert character columns to factors for modelling
+        annot <- as.data.frame(lapply(annot, function(col) {
+          if (is.character(col)) as.factor(col) else col
+        }))
+        rownames(annot) <- sampleNames
+
+        SummarizedExperiment::colData(qf) <- S4Vectors::DataFrame(annot)
+
         variables$qfeatures <- qf
-        
         showNotification("Annotation added successfully", type = "message")
       })
       
