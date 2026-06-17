@@ -4,11 +4,12 @@
 #' @rdname INTERNAL_inputUI
 #' @keywords internal
 #'
-#' @importFrom shiny fluidRow NS actionButton icon uiOutput helpText tags div
+#' @importFrom shiny fluidRow NS actionButton icon uiOutput helpText tags div plotOutput renderPlot selectInput
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
 #' @importFrom shiny dataTableOutput
+#' @importFrom SummarizedExperiment colData assay
 
 
 qcUI <- function(id="qc")
@@ -64,8 +65,42 @@ qcUI <- function(id="qc")
         	                      ")
              )
            ),
-          uiOutput(NS(id,'densityPlot')),
-          #uiOutput(NS(id,'pcaPlot')),
+          fluidRow(
+            box(
+              title = "Intensity Distributions",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "densityPlot"))
+            ),
+            box(
+              title = "Sample Boxplots",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "boxplot"))
+            )
+          ),
+          fluidRow(
+            box(
+              title = "Identifications per Sample",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "identificationsPlot"))
+            ),
+            box(
+              title = "Charge States",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "chargeStatesPlot"))
+            )
+          ),
+          box(
+            title = "Dimensionality Reduction",
+            status = "primary", width = 12,
+            solidHeader = FALSE, collapsible = TRUE,
+            selectInput(NS(id, "dimRedMethod"), "Method",
+                        choices = c("MDS", "OmicsGMF"), selected = "MDS"),
+            plotOutput(NS(id, "dimRedPlot"))
+          ),
           div(
             list(
               br(),
@@ -119,7 +154,7 @@ qcServer <- function(id="qc", variables){
         selectInput(session$ns("selectedAssay"), NULL, assayNamesPe(), selected = variables$selectedAssay, width = '100%')})
 
       output$selectVariable<- renderUI({
-        selectInput(session$ns("selectedVariable"), NULL, colDataNames(), width = '100%')})
+        selectInput(session$ns("selectedVariable"), NULL, colDataNames())})
 
       observeEvent(input$selectedAssay,
                    {
@@ -168,25 +203,30 @@ qcServer <- function(id="qc", variables){
         }
       })
 
-      output$densityPlot <- renderUI(
-        renderPlot(
-          plotDensities(variables$qfeatures,
-                        input$selectedAssay,
-                        input$selectedVariable)
-          )
-      )
+      output$densityPlot <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+        NewPlotDensities(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+      })
 
-      ### PCA plot
+      output$boxplot <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+        PlotNormBoxplots(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+      })
 
-      # output$pcaPlot <- renderUI(
-      #   {
-      #     renderPlot(
-      #       plotPCA(variables$qfeatures,
-      #               input$selectedAssay,
-      #               input$selectedVariable)
-      #       )
-      #   }
-      #   )
+      output$identificationsPlot <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+        PlotIdentifications(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+      })
+
+      output$chargeStatesPlot <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay)
+        PlotChargeStates(variables$qfeatures, input$selectedAssay)
+      })
+
+      output$dimRedPlot <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
+        PlotDimReduction(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
+      })
       return(
         list(
           selectedAssay = reactive(input$selectedAssay),

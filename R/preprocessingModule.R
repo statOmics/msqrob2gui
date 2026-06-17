@@ -27,7 +27,7 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Convert zeros to NA"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(2, actionButton(NS(id, "test_zero_to_na"), "Test", class = "btn-info"))
+          column(2, actionButton(NS(id, "test_zero_to_na"), "Test", class = "btn-primary"))
         ),
         helpText("Converts all zero values to NA.")
       ),
@@ -44,7 +44,7 @@ preprocessingUI <- function(id = "preprocessing") {
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(2, numericInput(NS(id, "threshold"), "Threshold", value = 1, min = 0, max = 1)),
           column(3, textInput(NS(id, "nameFilterNAAssay"), "Name", value = "quants_filter_na")),
-          column(2, actionButton(NS(id, "test_filter_na"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(2, actionButton(NS(id, "test_filter_na"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
         helpText("Removes features with proportion of missing values above threshold.")
       ),
@@ -54,7 +54,7 @@ preprocessingUI <- function(id = "preprocessing") {
         tags$label("Log2-transform"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(4, textInput(NS(id, "nameLogAssay"), "Name", value = "quants_log")),
-          column(2, actionButton(NS(id, "test_log"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(2, actionButton(NS(id, "test_log"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         )
       ),
 
@@ -70,7 +70,7 @@ preprocessingUI <- function(id = "preprocessing") {
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(2, numericInput(NS(id, "threshold2"), "Threshold", value = 1, min = 0, max = 1)),
           column(3, textInput(NS(id, "nameFilterNA2Assay"), "Name", value = "proteins_filter_na")),
-          column(2, actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(2, actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
         helpText("Removes proteins with proportion of missing values above threshold.")
       ),
@@ -318,7 +318,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
                                 choices = c("==", "!=", "<", ">", "<=", ">=", "%in%"))),
           column(2, textInput(NS(id, "filterVal"), "Value")),
           column(1, actionButton(NS(id, "addFilter"), "Add", style = "margin-bottom: 0;")),
-          column(1, actionButton(NS(id, "test_filter"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(1, actionButton(NS(id, "test_filter"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
         uiOutput(NS(id, "FilterList")),
         fluidRow(style = "margin-top: 5px;",
@@ -364,7 +364,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
           column(3, textInput(NS(id, "nameAssay"), "Name", value = variables$nameAssayDefault)),
-          column(2, actionButton(NS(id, "test_join"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(2, actionButton(NS(id, "test_join"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
         helpText("Joins multiple assays into a single assay.")
       )
@@ -420,7 +420,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
                                             "quantiles", "quantiles.robust", "Median of Ratios"),
                                 selected = variables$normMethodDefault)),
           column(3, textInput(NS(id, "nameNormAssay"), "Name", value = if (!is.null(variables$nameNormAssayDefault)) variables$nameNormAssayDefault else "quants_norm")),
-          column(2, actionButton(NS(id, "test_norm"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(2, actionButton(NS(id, "test_norm"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         )
       )
     })
@@ -451,7 +451,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$aggrColDefault)),
           column(2, textInput(NS(id, "nameAggrAssay"), "Name", value = variables$nameAggrAssayDefault)),
           column(1, numericInput(NS(id, "nprecFilter"), "Min prec.", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
-          column(1, actionButton(NS(id, "test_aggr"), "Test", class = "btn-info", style = "margin-bottom: 0;"))
+          column(1, actionButton(NS(id, "test_aggr"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         )
       )
     })
@@ -505,11 +505,11 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
       # Step 4: filter NA
       req(input$nameFilterNAAssay)
-      filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+      filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(qf)) {
         input$nameAssay
       } else {
-        names(variables$qf_tmp)[1]
-      }      
+        names(qf)[1]
+      }
       qf <- try(stepFilterNA(qf, filterNA_i, input$nameFilterNAAssay, input$threshold))
       if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
 

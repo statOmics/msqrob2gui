@@ -27,8 +27,7 @@ msqrob2Server <- function(input, output, session) {
   
   modelServerInput <- modelServer(variables = global_variables)
 
-  inferenceServerInput <- inferenceServer(variables = global_variables
-                                          )
+  inferenceServerInput <- inferenceServer(variables = global_variables)
 
   reportServerInput <- reportServer(variables = global_variables,
                                importServerInput = importServerInput,

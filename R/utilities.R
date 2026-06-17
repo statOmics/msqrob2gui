@@ -401,3 +401,164 @@ plotPCA <- function(pe, assayName, varName)
     xlab(paste0("PC1 (", round(pc@R2[1] * 100,1),"%)")) +
     ylab(paste0("PC2 (", round(pc@R2[2] * 100,1),"%)"))
 }
+
+#' New function for plotting densities of features
+#'
+#' @param pe QFeatures object
+#' @param assayName string with name of QFeatures assay
+#' @param varName string with name of variable in colData used to color the density curves
+#' @return ggplot object
+#' @rdname INTERNAL_plotDensities
+#' @keywords internal
+#'
+#' @importFrom ggplot2 ggplot aes geom_density geom_boxplot geom_col geom_bar geom_point annotate labs theme_minimal theme_bw theme_void theme element_text
+#' @importFrom grid unit
+#' @importFrom dplyr filter group_by summarise mutate n_distinct
+#' @importFrom QFeatures longForm
+#' @importFrom SummarizedExperiment assay colData rowData
+#' @importFrom scater runMDS
+#' @importFrom SingleCellExperiment reducedDim
+#' @importFrom omicsGMF runGMF
+#'
+PlotIdentifications <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    as.data.frame() |>
+    filter(!is.na(value)) |>
+    group_by(colname) |>
+    summarise(IDs = n_distinct(rowname), varCol = first(.data[[varName]]), .groups = "drop") |>
+    ggplot(aes(x = colname, y = IDs, fill = as.factor(varCol))) +
+    geom_col() +
+    labs(
+      title = paste("Identifications per sample —", assayName),
+      x     = "Sample",
+      y     = "Identifications",
+      fill  = varName
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+PlotDimReduction <- function(pe, assayName, varName, method = c("MDS", "OmicsGMF")) {
+  method  <- match.arg(method)
+  varName <- as.character(varName)
+
+  meta <- colData(pe) |> as.data.frame()
+
+  if (method == "MDS") {
+    se     <- as(pe[[assayName]], "SingleCellExperiment")
+    se     <- scater::runMDS(se, assay.type = 1)
+    coords <- SingleCellExperiment::reducedDim(se, "MDS") |> as.data.frame()
+    colnames(coords)[1:2] <- c("Dim1", "Dim2")
+    xlabel <- "MDS1"
+    ylabel <- "MDS2"
+  } else {
+    se     <- as(pe[[assayName]], "SingleCellExperiment")
+    se     <- omicsGMF::runGMF(se, family = gaussian(), ncomponents = 2)
+    coords <- SingleCellExperiment::reducedDim(se, "GMF") |> as.data.frame()
+    colnames(coords)[1:2] <- c("Dim1", "Dim2")
+    xlabel <- "GMF1"
+    ylabel <- "GMF2"
+  }
+
+  df <- cbind(coords[, 1:2], meta)
+
+  ggplot(df, aes(x = Dim1, y = Dim2, col = as.factor(.data[[varName]]))) +
+    geom_point(size = 3) +
+    labs(
+      title = paste(method, "—", assayName),
+      x     = xlabel,
+      y     = ylabel,
+      col   = varName
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+PlotChargeStates <- function(pe, assayName, chargeVar = "Precursor.Charge") {
+  if (!chargeVar %in% colnames(rowData(pe[[assayName]]))) {
+    return(
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = paste0("'", chargeVar, "' not available for this dataset"),
+                 size = 5, colour = "grey40") +
+        theme_void()
+    )
+  }
+  longForm(pe[, , assayName],
+           colvars = colnames(colData(pe)),
+           rowvars = chargeVar) |>
+    as.data.frame() |>
+    filter(!is.na(value)) |>
+    filter(.data[[chargeVar]] <= 4) |>
+    ggplot(aes(x = colname)) +
+    geom_bar(aes(fill = factor(.data[[chargeVar]], levels = 4:1)),
+             colour = "black") +
+    labs(
+      title = paste("Peptide types per sample —", assayName),
+      x     = "Sample",
+      y     = "Count",
+      fill  = "Charge state"
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+PlotNormBoxplots <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    ggplot() +
+    aes(x = colname, y = value, fill = as.factor(.data[[varName]])) +
+    geom_boxplot(outlier.shape = NA) +
+    labs(
+      title = paste("Sample intensities —", assayName),
+      x     = "Sample",
+      y     = "Intensity",
+      fill  = varName
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+NewPlotDensities <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    ggplot() +
+    aes(x = value, group = colname, col = as.factor(.data[[varName]])) +
+    geom_density() +
+    labs(
+      title = paste("Intensity distributions —", assayName),
+      x     = "Intensity",
+      y     = "Density",
+      col   = varName
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+
+
+
