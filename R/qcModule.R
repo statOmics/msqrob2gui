@@ -85,20 +85,18 @@ qcUI <- function(id="qc")
               status = "primary", width = 6,
               solidHeader = FALSE, collapsible = TRUE,
               plotOutput(NS(id, "identificationsPlot"))
-            ),
-            box(
-              title = "Charge States",
-              status = "primary", width = 6,
-              solidHeader = FALSE, collapsible = TRUE,
-              plotOutput(NS(id, "chargeStatesPlot"))
             )
           ),
           box(
             title = "Dimensionality Reduction",
             status = "primary", width = 12,
             solidHeader = FALSE, collapsible = TRUE,
-            selectInput(NS(id, "dimRedMethod"), "Method",
-                        choices = c("MDS", "OmicsGMF"), selected = "MDS"),
+            fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
+              column(3, selectInput(NS(id, "dimRedMethod"), "Method",
+                                   choices = c("MDS", "OmicsGMF"), selected = "MDS")),
+              column(2, actionButton(NS(id, "runDimRed"), "Run", class = "btn-primary",
+                                    style = "margin-bottom: 0;"))
+            ),
             plotOutput(NS(id, "dimRedPlot"))
           ),
           div(
@@ -218,14 +216,12 @@ qcServer <- function(id="qc", variables){
         PlotIdentifications(variables$qfeatures, input$selectedAssay, input$selectedVariable)
       })
 
-      output$chargeStatesPlot <- renderPlot({
-        req(variables$qfeatures, input$selectedAssay)
-        PlotChargeStates(variables$qfeatures, input$selectedAssay)
-      })
-
       output$dimRedPlot <- renderPlot({
-        req(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
-        PlotDimReduction(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
+        req(input$runDimRed)
+        isolate({
+          req(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
+          PlotDimReduction(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
+        })
       })
       return(
         list(

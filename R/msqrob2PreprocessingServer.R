@@ -25,7 +25,9 @@ msqrob2PreprocessingServer <- function(input, output, session) {
   
   qcServerInput <- qcServer(variables = global_variables)
 
-  #reportServerInput <- reportPreprocessingServer()
+  reportServerInput <- reportPreprocessingServer(variables = global_variables,
+                                                 importServerInput = importServerInput,
+                                                 preprocessingServerInput = preprocessingServerInput)
 
   ############################################################
   #Stop the App when closing the browser or ending the session

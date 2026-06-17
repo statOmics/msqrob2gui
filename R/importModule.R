@@ -346,9 +346,13 @@ importServer <- function(id="import", variables){
       return(
         list(
           qfeatures = reactive(variables$qfeatures),
-          software = reactive(variables$software)
-      )
-
+          software  = reactive(variables$software),
+          fnames    = reactive(input$fnames),
+          runCol    = reactive(input$runCol),
+          quantCol  = reactive(input$quantCol),
+          quantCols = reactive(input$quantCols),
+          name      = reactive(input$name)
+        )
       )
     }
   )

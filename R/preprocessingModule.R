@@ -46,14 +46,16 @@ preprocessingUI <- function(id = "preprocessing") {
           column(3, textInput(NS(id, "nameFilterNAAssay"), "Name", value = "quants_filter_na")),
           column(2, actionButton(NS(id, "test_filter_na"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
-        helpText("Removes features with proportion of missing values above threshold.")
+        helpText("Removes features with proportion of missing values above threshold."),
+        uiOutput(NS(id, "missingValUI"))
       ),
 
       # --- Log transform ---
       div(style = "margin-bottom: 15px;",
         tags$label("Log2-transform"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(4, textInput(NS(id, "nameLogAssay"), "Name", value = "quants_log")),
+          column(3, checkboxInput(NS(id, "doLog"), "Apply log2 transform", value = TRUE)),
+          column(3, textInput(NS(id, "nameLogAssay"), "Name", value = "quants_log")),
           column(2, actionButton(NS(id, "test_log"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         )
       ),
@@ -72,7 +74,8 @@ preprocessingUI <- function(id = "preprocessing") {
           column(3, textInput(NS(id, "nameFilterNA2Assay"), "Name", value = "proteins_filter_na")),
           column(2, actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
         ),
-        helpText("Removes proteins with proportion of missing values above threshold.")
+        helpText("Removes proteins with proportion of missing values above threshold."),
+        uiOutput(NS(id, "missingValUI2"))
       ),
 
       # --- Run all ---
@@ -125,9 +128,13 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     observeEvent(variables$qfeatures, {
       if (is.null(variables$qfeatures_import)) {
         variables$qfeatures_import <- variables$qfeatures
-        variables$qf_tmp <- NULL
+        variables$qf_tmp <- variables$qfeatures
+      } else if (ncol(SummarizedExperiment::colData(variables$qfeatures)) >
+                 ncol(SummarizedExperiment::colData(variables$qfeatures_import))) {
+        variables$qfeatures_import <- variables$qfeatures
+        variables$qf_tmp <- variables$qfeatures
       }
-    }, once = TRUE)
+    })
 
     observeEvent(input$restore_qf, {
       req(variables$qfeatures_import)
@@ -136,63 +143,6 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
       showNotification("QFeatures restored from import", type = "message")
     })
-
-    # ---- Step functions ----
-    stepZeroToNA <- function(qf) {
-      QFeatures::zeroIsNA(qf, i = names(qf))
-    }
-
-    stepFilter <- function(qf, filters) {
-      formula_str <- paste(filters, collapse = " & ")
-      filter_formula <- as.formula(paste("~", formula_str))
-      QFeatures::filterFeatures(qf, filter_formula)
-    }
-
-    stepJoin <- function(qf, fCol, nameAssay) {
-      qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = fCol, name = nameAssay)
-      qf[, , nameAssay]
-    }
-
-    stepFilterNA <- function(qf, i, name, threshold) {
-      se <- QFeatures::filterNA(qf[, , i], i = i, pNA = threshold)[[i]]
-      QFeatures::addAssay(qf, se, name)
-    }
-
-    stepLog <- function(qf, i, name) {
-      QFeatures::logTransform(qf, base = 2, i = i, name = name)
-    }
-
-    stepNorm <- function(qf, normMethod, nameLogAssay, nameNormAssay) {
-      if (normMethod == "Median of Ratios") {
-        QFeatures::sweep(qf, MARGIN = 2,
-                         STATS = msqrob2::nfLogMedianOfRatios(qf, nameLogAssay),
-                         i = nameLogAssay, name = nameNormAssay)
-      } else {
-        QFeatures::normalize(qf, method = normMethod, i = nameLogAssay, name = nameNormAssay)
-      }
-    }
-
-    stepAggr <- function(qf, aggrMethod, nameNormAssay, aggrCol, nameAggrAssay, nprecFilter) {
-      aggFun <- if (aggrMethod == "maxLFQ") {
-        function(X) iq::maxLFQ(X)$estimate
-      } else {
-        switch(aggrMethod,
-          "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
-          "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
-          "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
-          "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
-          "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
-        )
-      }
-      qf <- QFeatures::aggregateFeatures(qf, i = nameNormAssay, name = nameAggrAssay,
-                                          fcol = aggrCol, fun = aggFun)
-      counts <- assay(qf[[nameAggrAssay]], "aggcounts")
-      a <- assay(qf[[nameAggrAssay]])
-      a[counts < nprecFilter] <- NA
-      assay(qf[[nameAggrAssay]]) <- a
-      qf
-    }
-
 
     # ---- Helper: summarise dims ----
     showDims <- function(qf) {
@@ -220,10 +170,15 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           "PG_Qvalue <= 0.01",
           "EG_IsImputed %in% c(FALSE, 'False', '0')"
         ),
-        "maxquant" = list(
-          "Proteins != ''",
-          "Reverse != '+'"
-        ),
+        "maxquant" = {
+          mq_filters <- list("Proteins != ''", "Reverse != '+'")
+          if (!is.null(variables$qfeatures)) {
+            rd_cols    <- colnames(SummarizedExperiment::rowData(variables$qfeatures[[1]]))
+            contam_col <- rd_cols[grepl("contaminant", rd_cols, ignore.case = TRUE)][1]
+            if (!is.na(contam_col)) mq_filters <- c(mq_filters, list(paste0(contam_col, " != '+'")))
+          }
+          mq_filters
+        },
         "other"       = list(),
         list()
       ))
@@ -295,7 +250,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     observeEvent(input$test_zero_to_na, {
       req(variables$qfeatures)
       
-      variables$qf_tmp <- try(stepZeroToNA(variables$qfeatures))
+      variables$qf_tmp <- try(QFeatures::zeroIsNA(variables$qfeatures, i = names(variables$qfeatures)))
       
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
@@ -344,8 +299,14 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     # ---- Test: Filter ----
     observeEvent(input$test_filter, {
       req(variables$qf_tmp)
-      req(length(filterList()) > 0)
-      variables$qf_tmp <- try(stepFilter(variables$qf_tmp, filterList()))
+      if (length(filterList()) == 0) {
+        showNotification("No filters applied", type = "message", duration = 3)
+        return()
+      }
+      variables$qf_tmp <- try({
+        filter_formula <- as.formula(paste("~", paste(unlist(filterList()), collapse = " & ")))
+        QFeatures::filterFeatures(variables$qf_tmp, filter_formula)
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
@@ -374,12 +335,37 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     observeEvent(input$test_join, {
       req(variables$qf_tmp, input$fCol, input$nameAssay)
       if (length(names(variables$qf_tmp)) <= 1) return(NULL)
-      variables$qf_tmp <- try(stepJoin(variables$qf_tmp, input$fCol, input$nameAssay))
+      variables$qf_tmp <- try({
+        qf <- QFeatures::joinAssays(variables$qf_tmp, i = names(variables$qf_tmp), fcol = input$fCol, name = input$nameAssay)
+        qf[, , input$nameAssay]
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
         showNotification("Okay!", type = "message", duration = 5)
       }
+    })
+
+    # ---- Missing values plot ----
+    missingValAssay <- reactive({
+      req(variables$qf_tmp)
+      if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+        input$nameAssay
+      } else if (length(names(variables$qf_tmp)) == 1) {
+        names(variables$qf_tmp)[1]
+      } else {
+        NULL
+      }
+    })
+
+    output$missingValUI <- renderUI({
+      req(missingValAssay())
+      fluidRow(column(6, plotOutput(NS(id, "missingValPlot"))))
+    })
+
+    output$missingValPlot <- renderPlot({
+      req(variables$qf_tmp, missingValAssay(), input$threshold)
+      PlotMissingValues(variables$qf_tmp, missingValAssay(), input$threshold)
     })
 
     # ---- Test: Filter NA ----
@@ -390,7 +376,10 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       } else {
         names(variables$qf_tmp)[1]
       }
-      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, filterNA_i, input$nameFilterNAAssay, input$threshold))
+      variables$qf_tmp <- try({
+        se <- QFeatures::filterNA(variables$qf_tmp[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
+        QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNAAssay)
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "error", duration = 5)
       } else {
@@ -400,8 +389,12 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Log transform ----
     observeEvent(input$test_log, {
+      if (!isTRUE(input$doLog)) {
+        showNotification("Log transform skipped (None)", type = "message", duration = 3)
+        return()
+      }
       req(variables$qf_tmp, input$nameFilterNAAssay, input$nameLogAssay)
-      variables$qf_tmp <- try(stepLog(variables$qf_tmp, input$nameFilterNAAssay, input$nameLogAssay))
+      variables$qf_tmp <- try(QFeatures::logTransform(variables$qf_tmp, base = 2, i = input$nameFilterNAAssay, name = input$nameLogAssay))
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "error", duration = 5)
       } else {
@@ -415,7 +408,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         tags$label("Normalisation"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, selectInput(NS(id, "normMethod"), "Method",
-                                choices = c("sum", "max", "center.mean", "center.median",
+                                choices = c("None", "sum", "max", "center.mean", "center.median",
                                             "div.mean", "div.median", "diff.median",
                                             "quantiles", "quantiles.robust", "Median of Ratios"),
                                 selected = variables$normMethodDefault)),
@@ -427,8 +420,21 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Normalisation ----
     observeEvent(input$test_norm, {
-      req(variables$qf_tmp, input$normMethod, input$nameLogAssay, input$nameNormAssay)
-      variables$qf_tmp <- try(stepNorm(variables$qf_tmp, input$normMethod, input$nameLogAssay, input$nameNormAssay))
+      if (input$normMethod == "None") {
+        showNotification("Normalisation skipped (None)", type = "message", duration = 3)
+        return()
+      }
+      normInput <- if (!isTRUE(input$doLog)) input$nameFilterNAAssay else input$nameLogAssay
+      req(variables$qf_tmp, normInput, input$nameNormAssay)
+      variables$qf_tmp <- try({
+        if (input$normMethod == "Median of Ratios") {
+          QFeatures::sweep(variables$qf_tmp, MARGIN = 2,
+                           STATS = msqrob2::nfLogMedianOfRatios(variables$qf_tmp, normInput),
+                           i = normInput, name = input$nameNormAssay)
+        } else {
+          QFeatures::normalize(variables$qf_tmp, method = input$normMethod, i = normInput, name = input$nameNormAssay)
+        }
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
@@ -445,7 +451,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         tags$label("Aggregation"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, selectInput(NS(id, "aggrMethod"), "Method",
-                                choices = c("medianPolish", "robustSummary", "colMeans",
+                                choices = c("None", "medianPolish", "robustSummary", "colMeans",
                                             "colMedians", "colSums", "maxLFQ"),
                                 selected = variables$aggrMethodDefault)),
           column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$aggrColDefault)),
@@ -458,9 +464,33 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Aggregation ----
     observeEvent(input$test_aggr, {
-      req(variables$qf_tmp, input$aggrMethod, input$nameNormAssay, input$aggrCol, input$nameAggrAssay, input$nprecFilter)
-      variables$qf_tmp <- try(stepAggr(variables$qf_tmp, input$aggrMethod, input$nameNormAssay,
-                              input$aggrCol, input$nameAggrAssay, input$nprecFilter))
+      if (input$aggrMethod == "None") {
+        showNotification("Aggregation skipped (None)", type = "message", duration = 3)
+        return()
+      }
+      normInput <- if (!isTRUE(input$doLog))          input$nameFilterNAAssay else input$nameLogAssay
+      aggrInput <- if (input$normMethod == "None")     normInput               else input$nameNormAssay
+      req(variables$qf_tmp, aggrInput, input$aggrCol, input$nameAggrAssay, input$nprecFilter)
+      variables$qf_tmp <- try({
+        aggFun <- if (input$aggrMethod == "maxLFQ") {
+          function(X) iq::maxLFQ(X)$estimate
+        } else {
+          switch(input$aggrMethod,
+            "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
+            "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
+            "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
+            "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
+            "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
+          )
+        }
+        qf <- QFeatures::aggregateFeatures(variables$qf_tmp, i = aggrInput, name = input$nameAggrAssay,
+                                            fcol = input$aggrCol, fun = aggFun)
+        counts <- SummarizedExperiment::assay(qf[[input$nameAggrAssay]], "aggcounts")
+        a      <- SummarizedExperiment::assay(qf[[input$nameAggrAssay]])
+        a[counts < input$nprecFilter] <- NA
+        SummarizedExperiment::assay(qf[[input$nameAggrAssay]]) <- a
+        qf
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
@@ -468,10 +498,33 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       }
     })
 
+    # ---- Missing values plot (post-aggregation) ----
+    missingValAssay2 <- reactive({
+      req(variables$qf_tmp, input$nameAggrAssay)
+      if (input$nameAggrAssay %in% names(variables$qf_tmp)) input$nameAggrAssay else NULL
+    })
+
+    output$missingValUI2 <- renderUI({
+      req(missingValAssay2())
+      fluidRow(column(6, plotOutput(NS(id, "missingValPlot2"))))
+    })
+
+    output$missingValPlot2 <- renderPlot({
+      req(variables$qf_tmp, missingValAssay2(), input$threshold2)
+      PlotMissingValues(variables$qf_tmp, missingValAssay2(), input$threshold2)
+    })
+
     # ---- Test: Filter NA post-aggregation ----
     observeEvent(input$test_filter_na2, {
-      req(variables$qf_tmp, input$threshold2, input$nameAggrAssay, input$nameFilterNA2Assay)
-      variables$qf_tmp <- try(stepFilterNA(variables$qf_tmp, input$nameAggrAssay, input$nameFilterNA2Assay, input$threshold2))
+      if (is.null(input$aggrMethod) || input$aggrMethod == "None") {
+        showNotification("Requires aggregation first", type = "warning", duration = 4)
+        return()
+      }
+      req(variables$qf_tmp, input$nameAggrAssay, input$threshold2, input$nameFilterNA2Assay)
+      variables$qf_tmp <- try({
+        se <- QFeatures::filterNA(variables$qf_tmp[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = input$threshold2)[[input$nameAggrAssay]]
+        QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNA2Assay)
+      })
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
@@ -487,19 +540,25 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       qf <- variables$qfeatures
 
       # Step 1: zero to NA
-      qf <- try(stepZeroToNA(qf))
+      qf <- try(QFeatures::zeroIsNA(qf, i = names(qf)))
       if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Zero to NA", type = "error"); return() }
 
       # Step 2: filters
       if (length(filterList()) > 0) {
-        qf <- try(stepFilter(qf, filterList()))
+        qf <- try({
+          filter_formula <- as.formula(paste("~", paste(unlist(filterList()), collapse = " & ")))
+          QFeatures::filterFeatures(qf, filter_formula)
+        })
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filtering", type = "error"); return() }
       }
 
       # Step 3: join if multiple assays
       if (length(names(qf)) > 1) {
         req(input$fCol, input$nameAssay)
-        qf <- try(stepJoin(qf, input$fCol, input$nameAssay))
+        qf <- try({
+          qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = input$fCol, name = input$nameAssay)
+          qf[, , input$nameAssay]
+        })
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Join assays", type = "error"); return() }
       }
 
@@ -510,28 +569,72 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       } else {
         names(qf)[1]
       }
-      qf <- try(stepFilterNA(qf, filterNA_i, input$nameFilterNAAssay, input$threshold))
+      qf <- try({
+        se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
+        QFeatures::addAssay(qf, se, input$nameFilterNAAssay)
+      })
       if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
 
       # Step 5: log transform
-      req(input$nameLogAssay)
-      qf <- try(stepLog(qf, input$nameFilterNAAssay, input$nameLogAssay))
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Log transform", type = "error"); return() }
+      if (isTRUE(input$doLog)) {
+        req(input$nameLogAssay)
+        qf <- try(QFeatures::logTransform(qf, base = 2, i = input$nameFilterNAAssay, name = input$nameLogAssay))
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Log transform", type = "error"); return() }
+      }
+      normInput <- if (!isTRUE(input$doLog)) input$nameFilterNAAssay else input$nameLogAssay
 
       # Step 6: normalisation
-      req(input$normMethod, input$nameNormAssay)
-      qf <- try(stepNorm(qf, input$normMethod, input$nameLogAssay, input$nameNormAssay))
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Normalisation", type = "error"); return() }
+      req(input$normMethod)
+      if (input$normMethod != "None") {
+        req(input$nameNormAssay)
+        qf <- try({
+          if (input$normMethod == "Median of Ratios") {
+            QFeatures::sweep(qf, MARGIN = 2,
+                             STATS = msqrob2::nfLogMedianOfRatios(qf, normInput),
+                             i = normInput, name = input$nameNormAssay)
+          } else {
+            QFeatures::normalize(qf, method = input$normMethod, i = normInput, name = input$nameNormAssay)
+          }
+        })
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Normalisation", type = "error"); return() }
+      }
+      aggrInput <- if (input$normMethod == "None") normInput else input$nameNormAssay
 
       # Step 7: aggregation
-      req(input$aggrMethod, input$aggrCol, input$nameAggrAssay, input$nprecFilter)
-      qf <- try(stepAggr(qf, input$aggrMethod, input$nameNormAssay, input$aggrCol, input$nameAggrAssay, input$nprecFilter))
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Aggregation", type = "error"); return() }
-
-      # Step 8: filter NA post-aggregation
-      req(input$nameFilterNA2Assay)
-      qf <- try(stepFilterNA(qf, input$nameAggrAssay, input$nameFilterNA2Assay, input$threshold2))
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+      req(input$aggrMethod)
+      if (input$aggrMethod != "None") {
+        req(input$aggrCol, input$nameAggrAssay, input$nprecFilter)
+        qf <- try({
+          aggFun <- if (input$aggrMethod == "maxLFQ") {
+            function(X) iq::maxLFQ(X)$estimate
+          } else {
+            switch(input$aggrMethod,
+              "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
+              "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
+              "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
+              "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
+              "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
+            )
+          }
+          qf <- QFeatures::aggregateFeatures(qf, i = aggrInput, name = input$nameAggrAssay,
+                                              fcol = input$aggrCol, fun = aggFun)
+          counts <- SummarizedExperiment::assay(qf[[input$nameAggrAssay]], "aggcounts")
+          a      <- SummarizedExperiment::assay(qf[[input$nameAggrAssay]])
+          a[counts < input$nprecFilter] <- NA
+          SummarizedExperiment::assay(qf[[input$nameAggrAssay]]) <- a
+          qf
+        })
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Aggregation", type = "error"); return() }
+      }
+      # Step 8: filter NA post-aggregation (only when aggregation was performed)
+      if (input$aggrMethod != "None") {
+        req(input$nameFilterNA2Assay)
+        qf <- try({
+          se <- QFeatures::filterNA(qf[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = input$threshold2)[[input$nameAggrAssay]]
+          QFeatures::addAssay(qf, se, input$nameFilterNA2Assay)
+        })
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+      }
 
       variables$qfeatures <- qf
       remove_modal_spinner()
@@ -553,6 +656,23 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       }
     )
 
-    return(list(qfeatures = reactive(variables$qfeatures)))
+    return(list(
+      qfeatures          = reactive(variables$qfeatures),
+      filterList         = reactive(filterList()),
+      doLog              = reactive(input$doLog),
+      fCol               = reactive(input$fCol),
+      nameAssay          = reactive(input$nameAssay),
+      threshold          = reactive(input$threshold),
+      nameFilterNAAssay  = reactive(input$nameFilterNAAssay),
+      nameLogAssay       = reactive(input$nameLogAssay),
+      normMethod         = reactive(input$normMethod),
+      nameNormAssay      = reactive(input$nameNormAssay),
+      aggrMethod         = reactive(input$aggrMethod),
+      aggrCol            = reactive(input$aggrCol),
+      nameAggrAssay      = reactive(input$nameAggrAssay),
+      nprecFilter        = reactive(input$nprecFilter),
+      threshold2         = reactive(input$threshold2),
+      nameFilterNA2Assay = reactive(input$nameFilterNA2Assay)
+    ))
   })
 }
