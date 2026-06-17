@@ -25,9 +25,10 @@ citecolor: blue
 # Background
 Describe data here. 
 
-The following packages are needed for this report 
 
-```{r, warning=FALSE, message=FALSE}
+Load Packages.
+
+```{r load-pkgs, warning=FALSE, message=FALSE}
 suppressPackageStartupMessages({
 library(tidyverse)
 library(limma)
@@ -208,15 +209,38 @@ inferences |>
 
 # Interactive visualisation is possible with the altSEE app.
 
+All the code chunks below are set at eval=FALSE. 
+So you have to run these manually as they allow interactive visualization.
+Note, that the qfeatures object also needs to be imported in your session: 
+So run all code chunks below before the interactive visualisation. 
+
+The following packages are needed for the visualization. 
+The R chunk below is not evaluated by default. 
+If you need/want to install the packages run the code chunk below manually.
+
+```{r install-deps, eval=FALSE}
+bioc_pkgs <- c("scater", "iSEE", "iSEEu")
+missing_bioc <- bioc_pkgs[!vapply(bioc_pkgs, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing_bioc) > 0) {
+  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+  BiocManager::install(missing_bioc)
+}
+
+if (!requireNamespace("altSEE", quietly = TRUE)) {
+  if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+  remotes::install_github("statomics/altSEE")
+}
+```
+
 We first convert the QFeatures object in a SingleCellExperiment
 
 1. We get the selected set with colData, convert it to a 
    SingleCellExperiment object and add a reduced dimensionality plot. 
 2. Unpack inference columns 
 
-```{r qfToSce1}
+```{r qfToSce1, eval=FALSE}
 library(scater)
-
+library(QFeatures)
 sce <- getWithColData(qf, i = selectedSet) |> 
    as("SingleCellExperiment") |> 
    runMDS(exprs_values = 1) # 1. 
@@ -231,7 +255,7 @@ Add altExps with peptide data.
    SingleCellExperiment object and add a reduced dimensionality plot. 
 2. Unpack inference columns 
 
-```{r qfToSce2}
+```{r qfToSce2, eval=FALSE}
 setNames <- names(qf)
 setNames <- setNames[setNames != selectedSet]
 for (i in setNames)
@@ -248,7 +272,7 @@ rowData(altExp(sce,i)) <- rowData(altExp(sce,i)) |>
 
 Setup iSEE panels 
 
-```{r iseePanels, eval = FALSE}
+```{r iseePanels, eval=FALSE}
 library(iSEE)
 library(iSEEu)
 library(altSEE)

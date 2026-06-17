@@ -3,11 +3,14 @@
 \name{plotDensities}
 \alias{plotDensities}
 \alias{makeBoxplotFC}
+\alias{PlotIdentifications}
 \title{Function for plotting densities of features}
 \usage{
 plotDensities(pe, assayName, varName)
 
 makeBoxplotFC(dataset, sel, regulation = "both")
+
+PlotIdentifications(pe, assayName, varName)
 }
 \arguments{
 \item{pe}{QFeatures object}
@@ -26,10 +29,14 @@ makeBoxplotFC(dataset, sel, regulation = "both")
 ggplot object
 
 baseplot object
+
+ggplot object
 }
 \description{
 Function for plotting densities of features
 
 Function for plotting densities of features
+
+New function for plotting densities of features
 }
 \keyword{internal}

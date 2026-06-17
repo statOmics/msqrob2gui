@@ -1,5 +1,17 @@
 ### add line to define selectedSet
 
+### install missing dependencies (unquote code block below)
+# bioc_pkgs <- c("scater", "iSEE", "iSEEu")
+# missing_bioc <- bioc_pkgs[!vapply(bioc_pkgs, requireNamespace, logical(1), quietly = TRUE)]
+# if (length(missing_bioc) > 0) {
+#   if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+#   BiocManager::install(missing_bioc)
+# }
+# if (!requireNamespace("altSEE", quietly = TRUE)) {
+#   if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+#   remotes::install_github("statomics/altSEE")
+# }
+
 ### read qfeaturesFile
 qf <- readRDS("qfeaturesFile.rds")
 

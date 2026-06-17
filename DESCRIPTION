@@ -16,7 +16,6 @@ Imports:
     QFeatures,
     DT,
     SummarizedExperiment,
-    msqrob2,
     ExploreModelMatrix,
     MultiAssayExperiment,
     dplyr,
@@ -32,6 +31,16 @@ Imports:
     shinydashboard,
     shinydashboardPlus,
     pcaMethods
+Suggests:
+    iSEE,
+    iSEEu,
+    scater,
+    altSEE,
+    tidyverse,
+    limma,
+    knitr
+Remotes:
+    statomics/altSEE
 License: Artistic-2.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
