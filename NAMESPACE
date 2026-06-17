@@ -2,6 +2,7 @@
 
 export(launchMsqrob2App)
 export(launchMsqrob2ModelingApp)
+export(launchMsqrob2PreprocessingApp)
 import(DT)
 import(QFeatures)
 import(SummarizedExperiment)
