@@ -285,7 +285,7 @@ importServer <- function(id="import", variables){
         filename = "annotation.tsv",
         content  = function(file) {
           
-          write.csv(variables$annot_tmp, file,sep = "\t")  
+          write.table(variables$annot_tmp, file,sep = ";")  
           
         },
         contentType = "text/csv"
