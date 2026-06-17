@@ -41,13 +41,13 @@ library(knitr)
 
 Initialize all input parameters used in the GUI. 
 
-## Input tab
+## Read Qfeatures
 
-```{r}
-{{input}}
+```{r qfFile}
+{{qfFile}}
 ```
 
-Specification of qfeature file  Note that the qfeature file is copied to the zip file for the report and is named
+Specification of qfeature file.  Note that the qfeature file is copied to the zip file for the report and is named
 qfeaturesFile.rds respectively. 
 
 
@@ -55,7 +55,7 @@ qfeaturesFile.rds respectively.
 
 ## Model tab
 
-```{r}
+```{r defModel}
 {{model}}
 doRidge <- ifelse(doRidge=="1", TRUE, FALSE)
 doRobust <- ifelse(doRobust=="1", TRUE, FALSE)
@@ -86,7 +86,7 @@ your raw Feature-level intensities.
 
 To import the data we use the `QFeatures` package.
 
-```{r}
+```{r readQf}
 qf <- readRDS(qfeaturesFile)
 ```
 
@@ -104,7 +104,7 @@ as.formula(form)
 ```
 
 ```{r, warning=FALSE}
-qf <- msqrob(object = qf, i = selectedAssay, formula = as.formula(form), ridge = doRidge, robust = doRobust, overwrite=TRUE)
+qf <- msqrob(object = qf, i = selectedSet, formula = as.formula(form), ridge = doRidge, robust = doRobust, overwrite=TRUE)
 ```
 
 ## Inference
@@ -144,7 +144,7 @@ L <- makeContrast(
   parameterNames = parameter_names
   )
 
-qf <- hypothesisTest(object = qf, i = selectedAssay, contrast = L, overwrite = TRUE)
+qf <- hypothesisTest(object = qf, i = selectedSet, contrast = L, overwrite = TRUE)
 ```
 
 All `r ncol(L)` contrast(s) above are assessed automatically in this single call to `hypothesisTest`.
@@ -155,7 +155,7 @@ For every contrast we report a table the significant features at the `r sigLevel
 
 ```{r, results='asis', warning=FALSE, message=FALSE}
 inferences <- 
-  msqrobCollect(qf[["proteins"]], L) 
+  msqrobCollect(qf[[selectedSet]], L) 
 
 for (j in colnames(L)) {
 
@@ -203,6 +203,98 @@ inferences |>
            colour = "black") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90))
+```
+
+
+# Interactive visualisation is possible with the altSEE app.
+
+We first convert the QFeatures object in a SingleCellExperiment
+
+1. We get the selected set with colData, convert it to a 
+   SingleCellExperiment object and add a reduced dimensionality plot. 
+2. Unpack inference columns 
+
+```{r qfToSce1}
+library(scater)
+
+sce <- getWithColData(qf, i = selectedSet) |> 
+   as("SingleCellExperiment") |> 
+   runMDS(exprs_values = 1) # 1. 
+rowData(sce) <- rowData(sce) |> 
+  as.data.frame() |> 
+  dplyr::select(where(is.atomic)) #2.  
+```
+
+Add altExps with peptide data. 
+
+1. We get the peptide sets, convert them to a 
+   SingleCellExperiment object and add a reduced dimensionality plot. 
+2. Unpack inference columns 
+
+```{r qfToSce2}
+setNames <- names(qf)
+setNames <- setNames[setNames != selectedSet]
+for (i in setNames)
+{
+altExp(sce,i) <- qf[[i]] |> 
+     as("SingleCellExperiment") |> 
+   runMDS(exprs_values = 1) # 1. 
+rowData(altExp(sce,i)) <- rowData(altExp(sce,i)) |> 
+  as.data.frame() |> 
+  dplyr::select(where(is.atomic)) #2.  
+}
+```
+
+
+Setup iSEE panels 
+
+```{r iseePanels, eval = FALSE}
+library(iSEE)
+library(iSEEu)
+library(altSEE)
+
+rdp <- ReducedDimensionPlot(PanelWidth = 6L)
+ardp <- AltReducedDimensionPlot(PanelWidth = 6L)
+vp <- VolcanoPlot(PanelWidth = 6L)
+avp <- AltVolcanoPlot(PanelWidth = 6L)
+rdt <- RowDataTable(RowSelectionSource = "VolcanoPlot1", PanelWidth = 6L)
+ardt <- AltRowDataTable(RowSelectionSource = "AltVolcanoPlot1", 
+                           PanelWidth = 6L)
+mlfap <- LinkedFeaturesAssayPlot(
+  SelectionExperiment = "(Main)",
+  Experiment = "(Main)",
+  AltAssay = "proteins",
+  YAxisFeatureSource = "RowDataTable1",
+  PlotType = "Scatter + lines",
+  XAxis = "Column data",
+  XAxisColumnData = "sampleId",
+  PanelWidth = 6L
+  )
+
+alfap <- LinkedFeaturesAssayPlot(
+  YAxisFeatureSource = "RowDataTable1",
+  SelectionExperiment = "(Main)",
+  PlotType = "Scatter + lines",
+  XAxis = "Column data",
+  XAxisColumnData = "sampleId",
+  PanelWidth = 6L
+  )
+
+initial_panels <- list(rdp, ardp, vp, avp, rdt, ardt, mlfap, alfap)
+```
+
+
+Launch the app 
+
+```{r launch-app, eval=FALSE}
+app <- iSEE(
+    sce,
+    initial = initial_panels
+)
+
+if (interactive()) {
+    shiny::runApp(app, launch.browser = TRUE)
+}
 ```
 
 # Session Info

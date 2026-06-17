@@ -45,7 +45,7 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
     id,
     function(input,output,session){
       #make input variables for the report
-      selectedAssay <- metaReactive({..(qcServerInput$selectedAssay())}, varname = "selectedAssay")
+      selectedSet <- metaReactive({..(qcServerInput$selectedAssay())}, varname = "selectedSet")
       form <- metaReactive({..(modelServerInput$designFormula())}, varname = "form")
       doRidge <- metaReactive({..(modelServerInput$doRidge())}, varname = "doRidge")
       doRobust <- metaReactive({..(modelServerInput$doRobust())}, varname = "doRobust")
@@ -73,14 +73,14 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
             include_files <- c(include_files, variables$annotFileName)
           }
 
-          input <- expandChain(
+          qfFile <- expandChain(
             quote({
               qfeaturesFile <- "qfeaturesFile.rds"
               })
             )
           model <- gsub(paste0(id,"_"),"\n",
             expandChain(
-            invisible(selectedAssay()),
+            invisible(selectedSet()),
             invisible(form()),
             invisible(doRidge()),
             invisible(doRobust())
@@ -92,11 +92,19 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
             invisible(sigLevel())
             )
           )
+          # Generate runAltSEE.R with dynamic selectedSet injected at top
+          selectedSetCode <- gsub(paste0(id, "_"), "\n",
+            expandChain(invisible(selectedSet()))
+          )
+          altSEELines <- readLines(system.file("data/runAltSEE.R", package = "msqrob2gui"))
+          writeLines(c(selectedSetCode, "", altSEELines), "runAltSEE.R")
+          include_files <- c(include_files, "runAltSEE.R")
+
           buildRmdBundle(
             system.file("data/report-inference.Rmd",package="msqrob2gui"),
             file,
             list(
-              input = input,
+              qfFile = qfFile,
               model = model,
               inference = inference
               ),

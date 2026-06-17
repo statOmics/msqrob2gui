@@ -5,12 +5,14 @@
 \alias{reportServer}
 \title{Server for inference tab}
 \usage{
-inferenceServer(id = "inference", variables, inputServerInput)
+inferenceServer(id = "inference", variables, importServerInput)
 
 reportServer(
   id = "report",
   variables,
-  inputServerInput,
+  importServerInput,
+  preprocessingServerInput,
+  qcServerInput,
   modelServerInput,
   inferenceServerInput
 )
@@ -20,11 +22,11 @@ reportServer(
 
 \item{variables}{global reactive values object to share objects across modules}
 
-\item{inputServerInput}{list with reactive values containing the input of the inputServer module}
-
 \item{modelServerInput}{list with reactive values containing the input of the modelServer module}
 
 \item{inferenceServerInput}{list with reactive values containing the input of the inferenceServer module}
+
+\item{inputServerInput}{list with reactive values containing the input of the inputServer module}
 }
 \value{
 list of reactive inputs
