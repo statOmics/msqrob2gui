@@ -51,7 +51,6 @@ ardt <- AltRowDataTable(RowSelectionSource = "AltVolcanoPlot1",
 mlfap <- LinkedFeaturesAssayPlot(
   SelectionExperiment = "(Main)",
   Experiment = "(Main)",
-  AltAssay = "proteins",
   YAxisFeatureSource = "RowDataTable1",
   PlotType = "Scatter + lines",
   XAxis = "Column data",
