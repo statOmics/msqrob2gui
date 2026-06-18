@@ -70,9 +70,9 @@ qf <- if (isLong) {
 # Annotation
 
 ```{r annotation}
-annotFile <- list.files(pattern = "\\.tsv$|\\.csv$")
-if (length(annotFile) > 0) {
-  annot <- data.table::fread(annotFile[1], sep = ";")
+annotFile <- {{annotFileName}}
+if (!is.null(annotFile)) {
+  annot <- data.table::fread(annotFile, sep = ";")
   annot <- as.data.frame(annot)
   rownames(annot) <- annot[, 1]
   annot <- annot[rownames(colData(qf)), , drop = FALSE]
