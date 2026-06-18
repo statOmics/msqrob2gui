@@ -8,7 +8,6 @@
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
-#' @importFrom shiny dataTableOutput
 
 
 importUI <- function(id="import")
@@ -110,7 +109,7 @@ importUI <- function(id="import")
 #' @importFrom shiny moduleServer updateSelectInput observeEvent eventReactive is.reactive showNotification removeNotification renderUI
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
-#' @importFrom DT datatable renderDataTable
+#' @importFrom DT datatable
 #'
 importServer <- function(id="import", variables){
   moduleServer(
@@ -141,10 +140,9 @@ importServer <- function(id="import", variables){
       # select columns
       output$columnSelectors <- renderUI({
         req(variables$pe)
-        
+
         cols <- colnames(variables$pe)
-        isLong <- input$software %in% c("diann", "spectronaut")
-        
+
         cfg <- switch(input$software,
                       diann = list(
                         fnames   = "Precursor.Id",
@@ -167,29 +165,27 @@ importServer <- function(id="import", variables){
                         quantCol = NULL
                       )
         )
-        
-        if (isLong) {
-          list(
-            tags$label("Column selection"),
-            selectizeInput(NS(id, "fnames"),   "Feature ID column",
-                           choices = cols, selected = cfg$fnames),
-            selectizeInput(NS(id, "runCol"),   "Run column",
-                           choices = cols, selected = cfg$runCol),
+
+        # "None" means wide format. On the first render input$runCol is NULL,
+        # so fall back to cfg: if cfg$runCol is NULL the software is wide by default.
+        runColSelected <- if (is.null(cfg$runCol)) "None" else cfg$runCol
+        isLong <- if (is.null(input$runCol)) !is.null(cfg$runCol) else input$runCol != "None"
+
+        list(
+          tags$label("Column selection"),
+          selectizeInput(NS(id, "fnames"),   "Feature ID column",
+                         choices = cols, selected = cfg$fnames),
+          selectizeInput(NS(id, "runCol"),   "Run column",
+                         choices = c("None", cols), selected = runColSelected),
+          if (isLong) {
             selectizeInput(NS(id, "quantCol"), "Intensity column",
                            choices = cols, selected = cfg$quantCol)
-          )
-        } else {
-          list(
-            tags$label("Column selection"),
-            selectizeInput(NS(id, "fnames"),    "Feature ID column",
-                           choices = cols, selected = cfg$fnames),
-            selectizeInput(NS(id, "runCol"),   "Run column",
-                           choices = cols, selected = cfg$runCol),
+          } else {
             selectizeInput(NS(id, "quantCols"), "Intensity columns",
                            choices = cols, selected = cfg$quantCol,
                            multiple = TRUE)
-          )
-        }
+          }
+        )
       })
       
       # preview raw input file
@@ -221,11 +217,10 @@ importServer <- function(id="import", variables){
         req(input$fnames)
         
         
-        isLong <- input$software %in% c("diann", "spectronaut")
-        
+        isLong <- !is.null(input$runCol) && input$runCol != "None"
+
         pe <- if (isLong) {
-          req(input$runCol)
-          req(input$quantCol)
+          req(input$runCol, input$quantCol)
           QFeatures::readQFeatures(
             assayData = variables$pe,
             fnames    = input$fnames,

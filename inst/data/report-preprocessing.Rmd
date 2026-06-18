@@ -41,7 +41,7 @@ suppressPackageStartupMessages({
 ```{r import}
 rawFile <- {{rawFileName}}
 
-isLong <- software %in% c("diann", "spectronaut")
+isLong <- !is.null(runCol) && runCol != "None"
 
 pe_raw <- if (endsWith(rawFile, ".parquet")) {
   arrow::read_parquet(rawFile)
@@ -94,7 +94,9 @@ if (!is.null(annotFile)) {
 
 ```{r preprocessing}
 # Step 1: zero to NA
-qf <- QFeatures::zeroIsNA(qf, i = names(qf))
+if (doZeroToNA) {
+  qf <- QFeatures::zeroIsNA(qf, i = names(qf))
+}
 
 # Step 2: filters
 if (length(filterList) > 0) {

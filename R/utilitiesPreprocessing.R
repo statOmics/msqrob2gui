@@ -7,6 +7,9 @@
 #' @importFrom scater runMDS
 #' @importFrom SingleCellExperiment reducedDim
 #' @importFrom omicsGMF runGMF
+#' @keywords internal
+#' @name utilitiesPreprocessing-imports
+NULL
 
 #' Histogram of proportion of missing values per feature
 #'
@@ -38,13 +41,18 @@ PlotMissingValues <- function(pe, assayName, threshold) {
 #'   the curves.
 #' @return A \code{ggplot} object.
 #' @keywords internal
-NewPlotDensities <- function(pe, assayName, varName) {
+NewPlotDensities <- function(pe, assayName, varName, common = FALSE) {
+  if (common) {
+    mat  <- SummarizedExperiment::assay(pe[[assayName]])
+    keep <- rownames(mat)[complete.cases(mat)]
+    pe   <- pe[keep, , assayName]
+  }
   longForm(pe[, , assayName], colvars = varName) |>
     ggplot() +
     aes(x = value, group = colname, col = as.factor(.data[[varName]])) +
     geom_density() +
     labs(
-      title = paste("Intensity distributions —", assayName),
+      title = paste("Intensity distributions —", assayName, if (common) "(common features)" else ""),
       x     = "Intensity",
       y     = "Density",
       col   = varName
@@ -65,13 +73,18 @@ NewPlotDensities <- function(pe, assayName, varName) {
 #'   the boxes.
 #' @return A \code{ggplot} object.
 #' @keywords internal
-PlotNormBoxplots <- function(pe, assayName, varName) {
+PlotNormBoxplots <- function(pe, assayName, varName, common=FALSE) {
+  if (common) {
+    mat  <- SummarizedExperiment::assay(pe[[assayName]])
+    keep <- rownames(mat)[complete.cases(mat)]
+    pe   <- pe[keep, , assayName]
+  }
   longForm(pe[, , assayName], colvars = varName) |>
     ggplot() +
     aes(x = colname, y = value, fill = as.factor(.data[[varName]])) +
     geom_boxplot(outlier.shape = NA) +
     labs(
-      title = paste("Sample intensities —", assayName),
+      title = paste("Sample intensities —", assayName, if (common) "(common features)" else ""),
       x     = "Sample",
       y     = "Intensity",
       fill  = varName
@@ -122,24 +135,22 @@ PlotIdentifications <- function(pe, assayName, varName) {
 }
 
 
-#' Dimensionality reduction plot
+#' Compute dimensionality reduction coordinates
 #'
-#' Computes a 2D dimensionality reduction of samples and plots them coloured by
-#' a selected \code{colData} variable. Supports MDS (via
-#' \code{scater::runMDS}) and OmicsGMF (via \code{omicsGMF::runGMF}).
+#' Runs MDS or OmicsGMF on the selected assay and returns a list with the
+#' sample coordinates merged with \code{colData}, ready for plotting.
+#' Separating computation from plotting lets the plot be recoloured without
+#' rerunning the (potentially slow) reduction.
 #'
 #' @param pe A \code{QFeatures} object.
 #' @param assayName Character. Name of the assay to use.
-#' @param varName Character. Name of a \code{colData} variable used to colour
-#'   the points.
 #' @param method Character. One of \code{"MDS"} or \code{"OmicsGMF"}.
-#' @return A \code{ggplot} object.
+#' @return A list with elements \code{df}, \code{xlabel}, \code{ylabel},
+#'   \code{method}, and \code{assayName}.
 #' @keywords internal
-PlotDimReduction <- function(pe, assayName, varName, method = c("MDS", "OmicsGMF")) {
-  method  <- match.arg(method)
-  varName <- as.character(varName)
-
-  meta <- colData(pe) |> as.data.frame()
+ComputeDimReduction <- function(pe, assayName, method = c("MDS", "OmicsGMF")) {
+  method <- match.arg(method)
+  meta   <- colData(pe) |> as.data.frame()
 
   if (method == "MDS") {
     se     <- as(pe[[assayName]], "SingleCellExperiment")
@@ -157,14 +168,35 @@ PlotDimReduction <- function(pe, assayName, varName, method = c("MDS", "OmicsGMF
     ylabel <- "GMF2"
   }
 
-  df <- cbind(coords[, 1:2], meta)
+  list(
+    df        = cbind(coords[, 1:2], meta),
+    xlabel    = xlabel,
+    ylabel    = ylabel,
+    method    = method,
+    assayName = assayName
+  )
+}
+
+#' Plot precomputed dimensionality reduction
+#'
+#' Renders a scatter plot from coordinates produced by
+#' \code{ComputeDimReduction}, coloured by a selected \code{colData} variable.
+#' Changing \code{varName} does not trigger recomputation.
+#'
+#' @param dimRedResult List returned by \code{ComputeDimReduction}.
+#' @param varName Character. Name of a \code{colData} variable for colouring.
+#' @return A \code{ggplot} object.
+#' @keywords internal
+PlotDimReduction <- function(dimRedResult, varName) {
+  varName <- as.character(varName)
+  df      <- dimRedResult$df
 
   ggplot(df, aes(x = Dim1, y = Dim2, col = as.factor(.data[[varName]]))) +
     geom_point(size = 3) +
     labs(
-      title = paste(method, "—", assayName),
-      x     = xlabel,
-      y     = ylabel,
+      title = paste(dimRedResult$method, "—", dimRedResult$assayName),
+      x     = dimRedResult$xlabel,
+      y     = dimRedResult$ylabel,
       col   = varName
     ) +
     theme_minimal() +

@@ -444,45 +444,6 @@ PlotIdentifications <- function(pe, assayName, varName) {
     )
 }
 
-PlotDimReduction <- function(pe, assayName, varName, method = c("MDS", "OmicsGMF")) {
-  method  <- match.arg(method)
-  varName <- as.character(varName)
-
-  meta <- colData(pe) |> as.data.frame()
-
-  if (method == "MDS") {
-    se     <- as(pe[[assayName]], "SingleCellExperiment")
-    se     <- scater::runMDS(se, assay.type = 1)
-    coords <- SingleCellExperiment::reducedDim(se, "MDS") |> as.data.frame()
-    colnames(coords)[1:2] <- c("Dim1", "Dim2")
-    xlabel <- "MDS1"
-    ylabel <- "MDS2"
-  } else {
-    se     <- as(pe[[assayName]], "SingleCellExperiment")
-    se     <- omicsGMF::runGMF(se, family = gaussian(), ncomponents = 2)
-    coords <- SingleCellExperiment::reducedDim(se, "GMF") |> as.data.frame()
-    colnames(coords)[1:2] <- c("Dim1", "Dim2")
-    xlabel <- "GMF1"
-    ylabel <- "GMF2"
-  }
-
-  df <- cbind(coords[, 1:2], meta)
-
-  ggplot(df, aes(x = Dim1, y = Dim2, col = as.factor(.data[[varName]]))) +
-    geom_point(size = 3) +
-    labs(
-      title = paste(method, "—", assayName),
-      x     = xlabel,
-      y     = ylabel,
-      col   = varName
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position   = "right",
-      legend.title      = element_text(face = "bold"),
-      legend.key.height = unit(0.6, "cm")
-    )
-}
 
 PlotChargeStates <- function(pe, assayName, chargeVar = "Precursor.Charge") {
   if (!chargeVar %in% colnames(rowData(pe[[assayName]]))) {
