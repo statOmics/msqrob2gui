@@ -1,0 +1,175 @@
+---
+title: "Dynamic Report on preprocessing MS-based proteomics data using the msqrob2gui App"
+author: "msqrob2gui"
+date: "Developed by [statOmics](https://statomics.github.io)"
+output:
+    html_document:
+      code_download: true
+      theme: cosmo
+      toc: true
+      toc_float: true
+      highlight: tango
+      number_sections: true
+    pdf_document:
+      toc: true
+      number_sections: true
+linkcolor: blue
+urlcolor: blue
+citecolor: blue
+
+---
+
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(QFeatures)
+  library(msqrob2)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+# Import parameters
+
+```{r import-params}
+{{importCode}}
+```
+
+# Data import
+
+```{r import}
+rawFile <- c(list.files(pattern = "\\.parquet$"),
+             list.files(pattern = "\\.(csv|tsv)$"))[1]
+
+isLong <- software %in% c("diann", "spectronaut")
+
+pe_raw <- if (endsWith(rawFile, ".parquet")) {
+  arrow::read_parquet(rawFile)
+} else {
+  data.table::fread(rawFile, check.names = TRUE, integer64 = "double")
+}
+
+qf <- if (isLong) {
+  QFeatures::readQFeatures(
+    assayData = pe_raw,
+    fnames    = fnames,
+    runCol    = runCol,
+    quantCol  = quantCol,
+    name      = assayName
+  )
+} else {
+  QFeatures::readQFeatures(
+    assayData = pe_raw,
+    fnames    = fnames,
+    quantCols = which(colnames(pe_raw) %in% quantCols),
+    name      = assayName
+  )
+}
+```
+
+# Annotation
+
+```{r annotation}
+annotFile <- list.files(pattern = "\\.tsv$|\\.csv$")
+if (length(annotFile) > 0) {
+  annot <- data.table::fread(annotFile[1], sep = ";")
+  annot <- as.data.frame(annot)
+  rownames(annot) <- annot[, 1]
+  annot <- annot[rownames(colData(qf)), , drop = FALSE]
+  annot <- as.data.frame(lapply(annot, function(col) {
+    if (is.character(col)) as.factor(col) else col
+  }))
+  rownames(annot) <- rownames(colData(qf))
+  SummarizedExperiment::colData(qf) <- S4Vectors::DataFrame(annot)
+}
+```
+
+# Preprocessing parameters
+
+```{r preprocessing-params}
+{{preprocessing}}
+```
+
+# Preprocessing steps
+
+```{r preprocessing}
+# Step 1: zero to NA
+qf <- QFeatures::zeroIsNA(qf, i = names(qf))
+
+# Step 2: filters
+if (length(filterList) > 0) {
+  filter_formula <- as.formula(paste("~", paste(filterList, collapse = " & ")))
+  qf <- QFeatures::filterFeatures(qf, filter_formula)
+}
+
+# Step 3: join assays (if multiple)
+if (length(names(qf)) > 1) {
+  qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = fCol, name = nameAssay)
+  qf <- qf[, , nameAssay]
+}
+
+# Step 4: filter NA
+filterNA_i <- if (!is.null(nameAssay) && nameAssay %in% names(qf)) nameAssay else names(qf)[1]
+se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = threshold)[[filterNA_i]]
+qf <- QFeatures::addAssay(qf, se, nameFilterNAAssay)
+
+# Step 5: log transform
+# Step 5: log transform
+if (doLog) {
+  qf <- QFeatures::logTransform(qf, base = 2, i = nameFilterNAAssay, name = nameLogAssay)
+}
+normInput <- if (!doLog) nameFilterNAAssay else nameLogAssay
+
+# Step 6: normalisation
+if (normMethod != "None") {
+  if (normMethod == "Median of Ratios") {
+    qf <- QFeatures::sweep(qf, MARGIN = 2,
+                           STATS = msqrob2::nfLogMedianOfRatios(qf, normInput),
+                           i = normInput, name = nameNormAssay)
+  } else {
+    qf <- QFeatures::normalize(qf, method = normMethod, i = normInput, name = nameNormAssay)
+  }
+}
+aggrInput <- if (normMethod == "None") normInput else nameNormAssay
+
+# Step 7: aggregation
+if (aggrMethod != "None") {
+  aggFun <- if (aggrMethod == "maxLFQ") {
+    function(X) iq::maxLFQ(X)$estimate
+  } else {
+    switch(aggrMethod,
+      "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
+      "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
+      "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
+      "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
+      "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
+    )
+  }
+  qf <- QFeatures::aggregateFeatures(qf, i = aggrInput, name = nameAggrAssay,
+                                      fcol = aggrCol, fun = aggFun)
+  counts <- SummarizedExperiment::assay(qf[[nameAggrAssay]], "aggcounts")
+  a      <- SummarizedExperiment::assay(qf[[nameAggrAssay]])
+  a[counts < nprecFilter] <- NA
+  SummarizedExperiment::assay(qf[[nameAggrAssay]]) <- a
+}
+# Step 8: filter NA post-aggregation (only when aggregation was performed)
+if (aggrMethod != "None") {
+  se <- QFeatures::filterNA(qf[, , nameAggrAssay], i = nameAggrAssay, pNA = threshold2)[[nameAggrAssay]]
+  qf <- QFeatures::addAssay(qf, se, nameFilterNA2Assay)
+}
+```
+
+
+# Save preprocessed QFeatures
+
+```{r save}
+saveRDS(qf, "qfeaturesFile.rds")
+qf
+```
+
+# Session Info
+
+```{r session}
+sessionInfo()
+```

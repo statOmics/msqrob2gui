@@ -30,11 +30,18 @@ Imports:
     shinyFeedback,
     shinydashboard,
     shinydashboardPlus,
-    pcaMethods
+    pcaMethods,
+    grid,
+    S4Vectors,
+    scater,
+    SingleCellExperiment,
+    omicsGMF,
+    MsCoreUtils,
+    iq,
+    matrixStats
 Suggests:
     iSEE,
     iSEEu,
-    scater,
     altSEE,
     tidyverse,
     limma,
@@ -44,6 +51,6 @@ Remotes:
 License: Artistic-2.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-Collate: utilities.R importModule.R preprocessingModule.R	qcModule.R modelModule.R inferenceModule.R reportModule.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R msqrob2PreprocessingUI.R msqrob2PreprocessingServer.R launchMsqrob2PreprocessingApp.R msqrob2ModelingUI.R msqrob2ModelingServer.R launchMsqrob2ModelingApp.R launchAltSEEApp.R
+Collate: utilities.R utilitiesPreprocessing.R importModule.R preprocessingModule.R	qcModule.R modelModule.R inferenceModule.R reportPreprocessingModule.R reportModelingModule.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R msqrob2PreprocessingUI.R msqrob2PreprocessingServer.R launchMsqrob2PreprocessingApp.R msqrob2ModelingUI.R msqrob2ModelingServer.R launchMsqrob2ModelingApp.R launchAltSEEApp.R
 Config/roxygen2/version: 8.0.0
 RoxygenNote: 7.3.3
