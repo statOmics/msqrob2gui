@@ -1,7 +1,5 @@
-
 #' Internal utility imports
 #'
-#' @name msqrob2gui-utilities
 #' @keywords internal
 #' @importFrom ggplot2 ggplot aes geom_density geom_boxplot geom_col geom_bar geom_point geom_histogram geom_vline annotate labs theme_minimal theme_bw theme_void theme element_text
 #' @importFrom grid unit
@@ -11,13 +9,7 @@
 #' @importFrom scater runMDS
 #' @importFrom SingleCellExperiment reducedDim
 #' @importFrom omicsGMF runGMF
-<<<<<<< HEAD
-=======
-#' @keywords internal
 #' @name utilitiesPreprocessing-imports
->>>>>>> 96c62a3838215b0dc64605663c84822fc9efb971
-NULL
-
 #' Histogram of proportion of missing values per feature
 #'
 #' @param pe A \code{QFeatures} object.
