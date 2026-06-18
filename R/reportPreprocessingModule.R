@@ -121,7 +121,7 @@ reportPreprocessingServer <- function(id = "reportPreprocessing", variables, imp
           buildRmdBundle(
             system.file("data/report-preprocessing.Rmd", package = "msqrob2gui"),
             file,
-            list(importCode = importCode, preprocessing = preprocessingCode),
+            list(importCode = importCode, preprocessing = preprocessingCode,rawFileName = deparse(variables$rawFileName))),
             render = FALSE,
             include_files = include_files
           )

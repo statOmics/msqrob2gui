@@ -39,8 +39,7 @@ suppressPackageStartupMessages({
 # Data import
 
 ```{r import}
-rawFile <- c(list.files(pattern = "\\.parquet$"),
-             list.files(pattern = "\\.(csv|tsv)$"))[1]
+rawFile <- {{rawFileName}}
 
 isLong <- software %in% c("diann", "spectronaut")
 
