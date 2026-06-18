@@ -13,21 +13,10 @@ msqrob2ExploreServer <- function(input, output, session) {
     pe                    = NULL,
     qfeatures             = NULL,
     selectedAssay         = NULL,
-    selectedLowLevelAssay = NULL,
-    parameterNames        = NULL
+    selectedLowLevelAssay = NULL
   )
 
-  qcServerInput        <- qcServer(variables = global_variables)
-  modelServerInput     <- modelServer(variables = global_variables)
-  inferenceServerInput <- inferenceServer(variables = global_variables)
-  reportServerInput    <- reportServer(
-    variables                = global_variables,
-    importServerInput        = NULL,
-    preprocessingServerInput = NULL,
-    qcServerInput            = qcServerInput,
-    modelServerInput         = modelServerInput,
-    inferenceServerInput     = inferenceServerInput
-  )
+  qcServer(variables = global_variables)
   altSEEExploreServer(variables = global_variables)
 
   session$onSessionEnded(stopApp)

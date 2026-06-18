@@ -11,11 +11,11 @@
 #' @importFrom SummarizedExperiment colData assay
 
 
-qcUI <- function(id="qc")
+qcUI <- function(id="qc", showFileInput = TRUE)
 {
   fluidRow(
     column(width=12,
-           div(
+           if (showFileInput) div(
              list(tags$label("QFeatures input RDS file", `for`="pe"),
                   fileInput(inputId=NS(id,"pe"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
                     helpText(

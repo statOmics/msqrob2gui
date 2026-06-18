@@ -1,11 +1,9 @@
 #' Launch the msqrob2 Explore App
 #'
-#' An extension of \code{\link{launchMsqrob2ModelingApp}} that adds an
-#' interactive "Explore with altSEE" tab. After running modelling and
-#' inference, switch to that tab to configure and launch an iSEE session in a
-#' new browser tab. iSEE runs in a background R process, so the modelling app
-#' stays responsive — make changes, refit, then re-launch iSEE to explore the
-#' updated results.
+#' A lightweight app with a Quality Control tab for loading a QFeatures object
+#' and an "Explore with altSEE" tab for launching an interactive iSEE session.
+#' iSEE runs in a background R process so this app stays responsive while you
+#' explore results.
 #'
 #' @param maxSize maximum memory size that input files are allowed to have in Mb
 #'

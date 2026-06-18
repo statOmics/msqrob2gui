@@ -206,6 +206,16 @@ inferences |>
   theme(axis.text.x = element_text(angle = 90))
 ```
 
+# Save the QFeatures object with model results
+
+If you want to save the `QFeatures` object, uncomment the line with saveRDS in the R-chunk below. 
+
+Note, that this will overwrite the QFeatures object that you downloaded from the app. 
+
+```{r save}
+#saveRDS(qf, "qfeaturesFile.rds")
+qf
+```
 
 # Interactive visualisation is possible with the altSEE app.
 

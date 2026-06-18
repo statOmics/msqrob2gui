@@ -1,10 +1,10 @@
-#' Preprocessing report UI
+#' Data processing report UI
 #'
-#' @return A shiny tagList object that contains the preprocessing report UI components
-#' @rdname INTERNAL_reportPreprocessingUI
+#' @return A shiny tagList object that contains the data processing report UI components
+#' @rdname INTERNAL_reportDataProcessingUI
 #' @keywords internal
 #'
-reportPreprocessingUI <- function(id = "reportPreprocessing")
+reportDataProcessingUI <- function(id = "reportDataProcessing")
 {
   fluidRow(
     column(width = 12,
@@ -14,7 +14,7 @@ reportPreprocessingUI <- function(id = "reportPreprocessing")
             list(
               textInput(NS(id, "project_name"), NULL, value = "project", width = '100%', placeholder = NULL),
               helpText(
-                id = "tooltip_project_name_preprocessing",
+                id = "tooltip_project_name_dataprocessing",
                 "Give your project a meaningful name.
                          This name will be given to your results files.
                          A time stamp will be automatically appended to name.")
@@ -22,23 +22,23 @@ reportPreprocessingUI <- function(id = "reportPreprocessing")
           )
         )
       ),
-      downloadButton(NS(id, "report"), "Generate preprocessing report")
+      downloadButton(NS(id, "report"), "Generate data processing report")
     )
   )
 }
 
 
-#' Server for preprocessing report
+#' Server for data processing report
 #'
 #' @param id module id
 #' @param variables global reactive values object to share objects across modules
 #' @param importServerInput list with reactive values from importServer
 #' @param preprocessingServerInput list with reactive values from preprocessingServer
 #' @return nothing
-#' @rdname INTERNAL_reportPreprocessingServer
+#' @rdname INTERNAL_reportDataProcessingServer
 #' @keywords internal
 #'
-reportPreprocessingServer <- function(id = "reportPreprocessing", variables, importServerInput, preprocessingServerInput) {
+reportDataProcessingServer <- function(id = "reportDataProcessing", variables, importServerInput, preprocessingServerInput) {
   moduleServer(
     id,
     function(input, output, session) {
@@ -71,7 +71,7 @@ reportPreprocessingServer <- function(id = "reportPreprocessing", variables, imp
 
       output$report <- downloadHandler(
         filename = function() {
-          paste0(input$project_name, "-report-preprocessing-", gsub(" |:", "-", Sys.time()), ".zip")
+          paste0(input$project_name, "-report-dataprocessing-", gsub(" |:", "-", Sys.time()), ".zip")
         },
         content = function(file) {
 
@@ -121,7 +121,7 @@ reportPreprocessingServer <- function(id = "reportPreprocessing", variables, imp
             ))
 
           buildRmdBundle(
-            system.file("data/report-preprocessing.Rmd", package = "msqrob2gui"),
+            system.file("data/report-dataprocessing.Rmd", package = "msqrob2gui"),
             file,
             list(importCode = importCode, preprocessing = preprocessingCode,
                  rawFileName = deparse(variables$rawFileName),

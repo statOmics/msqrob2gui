@@ -72,7 +72,7 @@ qf <- if (isLong) {
 ```{r annotation}
 annotFile <- {{annotFileName}}
 if (!is.null(annotFile)) {
-  annot <- data.table::fread(annotFile, sep = ";")
+  annot <- data.table::fread(annotFile, check.names = TRUE, integer64 = "double", stringsAsFactors = TRUE)
   annot <- as.data.frame(annot)
   rownames(annot) <- annot[, 1]
   annot <- annot[rownames(colData(qf)), , drop = FALSE]
@@ -162,10 +162,14 @@ if (aggrMethod != "None") {
 ```
 
 
-# Save preprocessed QFeatures
+# Save the preprocessed QFeatures object
+
+If you want to save the `QFeatures` object, uncomment the line with saveRDS in the R-chunk below. 
+
+Note, that this will overwrite the QFeatures object that you downloaded from the app. 
 
 ```{r save}
-saveRDS(qf, "qfeaturesFile.rds")
+#saveRDS(qf, "qfeaturesFile.rds")
 qf
 ```
 

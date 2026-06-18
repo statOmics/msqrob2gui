@@ -1,4 +1,4 @@
-#' Shiny app server function
+#' Shiny app server function for the data processing app
 #'
 #' @param input provided by shiny
 #' @param output provided by shiny
@@ -7,7 +7,7 @@
 #' @importFrom shiny reactiveValues
 
 # Define server
-msqrob2Server <- function(input, output, session) {
+msqrob2DataProcessingServer <- function(input, output, session) {
   shinyjs::useShinyjs()
 
   global_variables <- reactiveValues(
@@ -15,7 +15,6 @@ msqrob2Server <- function(input, output, session) {
     qfeatures             = NULL,
     selectedAssay         = NULL,
     selectedLowLevelAssay = NULL,
-    parameterNames        = NULL,
     rawFilePath           = NULL,
     rawFileName           = NULL,
     annotFilePath         = NULL,
@@ -28,20 +27,11 @@ msqrob2Server <- function(input, output, session) {
 
   qcServerInput <- qcServer(variables = global_variables)
 
-  modelServerInput <- modelServer(variables = global_variables)
-
-  inferenceServerInput <- inferenceServer(variables = global_variables)
-
-  reportCombinedServer(
-    variables               = global_variables,
-    importServerInput       = importServerInput,
-    preprocessingServerInput = preprocessingServerInput,
-    qcServerInput           = qcServerInput,
-    modelServerInput        = modelServerInput,
-    inferenceServerInput    = inferenceServerInput
+  reportDataProcessingServer(
+    variables                = global_variables,
+    importServerInput        = importServerInput,
+    preprocessingServerInput = preprocessingServerInput
   )
-
-  altSEEExploreServer(variables = global_variables)
 
   session$onSessionEnded(stopApp)
 }

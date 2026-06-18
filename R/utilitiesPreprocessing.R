@@ -1,6 +1,7 @@
 #' Internal utility imports
 #'
 #' @keywords internal
+#' @name utilitiesPreprocessing-imports
 #' @importFrom ggplot2 ggplot aes geom_density geom_boxplot geom_col geom_bar geom_point geom_histogram geom_vline annotate labs theme_minimal theme_bw theme_void theme element_text
 #' @importFrom grid unit
 #' @importFrom dplyr filter group_by summarise mutate n_distinct first
@@ -9,7 +10,8 @@
 #' @importFrom scater runMDS
 #' @importFrom SingleCellExperiment reducedDim
 #' @importFrom omicsGMF runGMF
-#' @name utilitiesPreprocessing-imports
+NULL
+
 #' Histogram of proportion of missing values per feature
 #'
 #' @param pe A \code{QFeatures} object.

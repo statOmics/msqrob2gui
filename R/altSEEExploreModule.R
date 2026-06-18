@@ -201,3 +201,69 @@ altSEEExploreServer <- function(id = "explore", variables) {
     })
   })
 }
+
+
+# Build a SingleCellExperiment from a QFeatures object.
+# The selected assay becomes the main experiment; all other assays are altExps.
+#' @importFrom MultiAssayExperiment getWithColData
+#' @importFrom methods as
+#' @importFrom SingleCellExperiment altExp
+.qf_to_sce <- function(qf, selectedSet) {
+  sce <- MultiAssayExperiment::getWithColData(qf, i = selectedSet) |>
+    methods::as("SingleCellExperiment") |>
+    scater::runMDS(exprs_values = 1)
+  SummarizedExperiment::rowData(sce) <- SummarizedExperiment::rowData(sce) |>
+    as.data.frame() |>
+    dplyr::select(where(is.atomic))
+
+  for (i in setdiff(names(qf), selectedSet)) {
+    altsce <- qf[[i]] |>
+      methods::as("SingleCellExperiment") |>
+      scater::runMDS(exprs_values = 1)
+    SummarizedExperiment::rowData(altsce) <- SummarizedExperiment::rowData(altsce) |>
+      as.data.frame() |>
+      dplyr::select(where(is.atomic))
+    SingleCellExperiment::altExp(sce, i) <- altsce
+  }
+  sce
+}
+
+
+# Build the initial iSEE panel layout.
+# altExp is the alt experiment name; xAxisVar and mappingKey may be NULL.
+.altSEE_panels <- function(selectedSet, altExp, xAxisVar, mappingKey) {
+  lfap_base <- list(
+    YAxisFeatureSource = "RowDataTable1",
+    PlotType = if (!is.null(xAxisVar)) "Scatter + lines" else "Auto",
+    PanelWidth = 6L
+  )
+  if (!is.null(xAxisVar)) {
+    lfap_base$XAxis <- "Column data"
+    lfap_base$XAxisColumnData <- xAxisVar
+  }
+  if (!is.null(mappingKey)) {
+    lfap_base$LookupColumn <- mappingKey
+    lfap_base$MapColumn    <- mappingKey
+  }
+
+  lfap_main <- do.call(
+    altSEE::LinkedFeaturesAssayPlot,
+    c(list(SelectionExperiment = "(Main)", Experiment = "(Main)"), lfap_base)
+  )
+  lfap_alt <- do.call(
+    altSEE::LinkedFeaturesAssayPlot,
+    c(list(SelectionExperiment = "(Main)", Experiment = altExp), lfap_base)
+  )
+
+  list(
+    iSEE::ReducedDimensionPlot(PanelWidth = 6L),
+    altSEE::AltReducedDimensionPlot(PanelWidth = 6L, Experiment = altExp),
+    altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = "(Main)"),
+    altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = altExp),
+    iSEE::RowDataTable(RowSelectionSource = "AltVolcanoPlot1", PanelWidth = 6L),
+    altSEE::AltRowDataTable(RowSelectionSource = "AltVolcanoPlot2", PanelWidth = 6L,
+                            Experiment = altExp),
+    lfap_main,
+    lfap_alt
+  )
+}

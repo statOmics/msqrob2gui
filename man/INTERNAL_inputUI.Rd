@@ -7,7 +7,7 @@
 \usage{
 importUI(id = "import")
 
-qcUI(id = "qc")
+qcUI(id = "qc", showFileInput = TRUE)
 }
 \value{
 A shiny tagList object that contains the input UI components
