@@ -102,7 +102,7 @@ Initialize all input parameters used in the GUI to preprocess the data.
 
 Missing values are typically encoded as zeros.
 
-```{r preprocessing}
+```{r preprocessing step 1}
 # Step 1: zero to NA
 if (doZeroToNA) {
   qf <- QFeatures::zeroIsNA(qf, i = names(qf))
@@ -111,7 +111,7 @@ if (doZeroToNA) {
 
 Apply filtering steps to remove potential false positive identifications.
 
-```{r preprocessing}
+```{r preprocessing step 2}
 # Step 2: filters
 if (length(filterList) > 0) {
   filter_formula <- as.formula(paste("~", paste(filterList, collapse = " & ")))
@@ -121,7 +121,7 @@ if (length(filterList) > 0) {
 
 Join the multiple assays into a single assay. The 'fcol' parameter controls the feature ID variable used to join the assays.
 
-```{r preprocessing}
+```{r preprocessing step 3}
 # Step 3: join assays (if multiple)
 if (length(names(qf)) > 1) {
   qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = fCol, name = nameAssay)
@@ -131,7 +131,7 @@ if (length(names(qf)) > 1) {
 
 Remove features with a high proportion of missing values across samples.
 
-```{r preprocessing}
+```{r preprocessing step 4}
 # Step 4: filter NA
 filterNA_i <- if (!is.null(nameAssay) && nameAssay %in% names(qf)) nameAssay else names(qf)[1]
 se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = threshold)[[filterNA_i]]
@@ -140,7 +140,7 @@ qf <- QFeatures::addAssay(qf, se, nameFilterNAAssay)
 
 Perform log2-transformation.
 
-```{r preprocessing}
+```{r preprocessing step 5}
 # Step 5: log transform
 if (doLog) {
   qf <- QFeatures::logTransform(qf, base = 2, i = nameFilterNAAssay, name = nameLogAssay)
@@ -150,7 +150,7 @@ normInput <- if (!doLog) nameFilterNAAssay else nameLogAssay
 
 Apply normalisation to adjust for sample-specific loading differences.
 
-```{r preprocessing}
+```{r preprocessing step 6}
 # Step 6: normalisation
 if (normMethod != "None") {
   if (normMethod == "Median of Ratios") {
@@ -166,7 +166,7 @@ aggrInput <- if (normMethod == "None") normInput else nameNormAssay
 
 Aggregate the features at the protein/peptide level.
 
-```{r preprocessing}
+```{r preprocessing step 7}
 # Step 7: aggregation
 if (aggrMethod != "None") {
   aggFun <- if (aggrMethod == "maxLFQ") {
@@ -191,7 +191,7 @@ if (aggrMethod != "None") {
 
 Remove proteins with a high proportion of missing values after aggregation. Note that the N-peptides rule introduces missing values for proteins supported by fewer than N peptides, so an additional filtering step is required.
 
-```{r preprocessing}
+```{r preprocessing step 8}
 # Step 8: filter NA post-aggregation (only when aggregation was performed)
 if (aggrMethod != "None") {
   se <- QFeatures::filterNA(qf[, , nameAggrAssay], i = nameAggrAssay, pNA = threshold2)[[nameAggrAssay]]
