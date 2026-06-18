@@ -93,12 +93,31 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
             )
           )
           # Generate runAltSEE.R with dynamic selectedSet injected at top
-          selectedSetCode <- gsub(paste0(id, "_"), "\n",
-            expandChain(invisible(selectedSet()))
-          )
-          altSEELines <- readLines(system.file("data/runAltSEE.R", package = "msqrob2gui"))
-          writeLines(c(selectedSetCode, "", altSEELines), "runAltSEE.R")
-          include_files <- c(include_files, "runAltSEE.R")
+          #selectedSetCode <- gsub(paste0(id, "_"), "\n",
+          #  expandChain(invisible(selectedSet()))
+          #)
+          #altSEELines <- readLines(system.file("data/runAltSEE.R", package = "msqrob2gui"))
+          #writeLines(c(selectedSetCode, "", altSEELines), "runAltSEE.R")
+          #include_files <- c(include_files, "runAltSEE.R")
+
+          # Generate inference.tsv via msqrobCollect on the already-tested QFeatures
+          if (length(contrast()) > 0 && !is.null(variables$parameterNames)) {
+            L <- try(
+              makeContrast(contrast(), parameterNames = variables$parameterNames),
+              silent = TRUE
+            )
+            if (!inherits(L, "try-error")) {
+              inferenceDf <- try(
+                msqrobCollect(variables$qfeatures[[selectedSet()]], L),
+                silent = TRUE
+              )
+              if (!inherits(inferenceDf, "try-error")) {
+                write.table(inferenceDf, "inference.tsv",
+                            sep = "\t", row.names = FALSE, quote = FALSE)
+                include_files <- c(include_files, "inference.tsv")
+              }
+            }
+          }
 
           buildRmdBundle(
             system.file("data/report-inference.Rmd",package="msqrob2gui"),
