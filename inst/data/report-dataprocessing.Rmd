@@ -50,7 +50,9 @@ isLong <- !is.null(runCol) && runCol != "None"
 pe_raw <- if (endsWith(rawFile, ".parquet")) {
   arrow::read_parquet(rawFile)
 } else {
-  data.table::fread(rawFile, check.names = TRUE, integer64 = "double")
+  data.table::fread(rawFile, 
+                    check.names = TRUE, 
+                    integer64 = "double")
 }
 
 qf <- if (isLong) {
@@ -78,7 +80,10 @@ Import the annotation file and set it as 'colData' of the QFeatures object.
 ```{r annotation}
 annotFile <- {{annotFileName}}
 if (!is.null(annotFile)) {
-  annot <- data.table::fread(annotFile, check.names = TRUE, integer64 = "double", stringsAsFactors = TRUE)
+  annot <- data.table::fread(annotFile, 
+                             check.names = TRUE, 
+                             integer64 = "double", 
+                             stringsAsFactors = TRUE)
   annot <- as.data.frame(annot)
   rownames(annot) <- annot[, 1]
   annot <- annot[rownames(colData(qf)), , drop = FALSE]
