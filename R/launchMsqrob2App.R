@@ -6,10 +6,10 @@
 #'
 #' @return shiny application object
 #'
-#' @example
+#' @examples
 #' \dontrun{launchMsqrob2App()}
 #'
-#' @import shiny shinymeta shinyjs msqrob2 QFeatures DT SummarizedExperiment shinybusy dplyr ggplot2 grid
+#' @import shiny shinymeta QFeatures SummarizedExperiment shinybusy dplyr ggplot2 grid
 #'
 
 

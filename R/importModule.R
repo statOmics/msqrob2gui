@@ -110,7 +110,7 @@ importUI <- function(id="import")
 #' @importFrom shiny moduleServer updateSelectInput observeEvent eventReactive is.reactive showNotification removeNotification renderUI
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
-#' @importFrom DT datatable renderDataTable
+#' @importFrom DT datatable
 #'
 importServer <- function(id="import", variables){
   moduleServer(

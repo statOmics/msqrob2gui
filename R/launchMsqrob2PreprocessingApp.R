@@ -6,10 +6,10 @@
 #'
 #' @return shiny application object
 #'
-#' @example
-#' \dontrun{launchMsqrob2ModelingApp()}
+#' @examples
+#' \dontrun{launchMsqrob2PreprocessingApp()}
 #'
-#' @import shiny shinymeta shinyjs msqrob2 QFeatures DT SummarizedExperiment shinybusy
+#' @import shiny shinymeta QFeatures SummarizedExperiment shinybusy
 #'
 
 

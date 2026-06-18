@@ -84,6 +84,7 @@ modelUI <- function(id="model")
 #' @keywords internal
 #'
 #' @importFrom ExploreModelMatrix VisualizeDesign
+#' @importFrom msqrob2 msqrob
 modelServer <- function(id="model", variables){
   moduleServer(
     id,

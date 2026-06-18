@@ -15,3 +15,7 @@ shiny application object
 \description{
 Launches the msqrob2 Shiny App
 }
+\examples{
+\dontrun{launchMsqrob2ModelingApp()}
+
+}

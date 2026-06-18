@@ -136,6 +136,8 @@ inferenceUI <- function(id="inference")
 #' @return list of reactive inputs
 #' @rdname INTERNAL_inferenceServer
 #' @keywords internal
+#' @importFrom DT datatable dataTableProxy formatSignif
+#' @importFrom msqrob2 makeContrast hypothesisTest msqrobCollect createPairwiseContrasts
 #'
 inferenceServer <- function(id="inference", variables, importServerInput){
   moduleServer(
@@ -282,11 +284,11 @@ inferenceServer <- function(id="inference", variables, importServerInput){
         })
 
       output$table<-DT::renderDT(
-        formatSignif(datatable(data()[,1:6]),columns=1:6,digits=3)
+        DT::formatSignif(DT::datatable(data()[,1:6]),columns=1:6,digits=3)
         )
 
       #Set table Proxy so as to reduce the table according to the zoom in the plot and to highlight points
-      proxy <- dataTableProxy('table')
+      proxy <- DT::dataTableProxy('table')
       observeEvent(input$plotVolcano_click, {
         selected <- nearPoints(clickInfo(), input$plotVolcano_click, addDist = TRUE,maxpoints=1, xvar="logFC", yvar="minusLog10Pval")
         sel_rows <- which(rownames(clickInfo()) %in% rownames(selected))

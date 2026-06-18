@@ -7,12 +7,15 @@ Authors@R:
              family = "Clement",
              role = c("aut", "cre"),
              email = "lieven.clement@ugent.be",
-             comment = c(ORCID = "0000-0002-9050-4370")))
+             comment = c(ORCID = "0000-0002-9050-4370")),
+      person(given = "Luca",
+             family = "De Corso",
+             role = c("aut")))
 Description: Shiny Apps building on the msqrob2 package for robust statistical inference for quantitative proteomics
    using the QFeature infrastructure for quantitative mass spectrometry
    data.
 Imports:
-    msqrob2,
+    msqrob2 (>= 1.20.0),
     QFeatures,
     DT,
     SummarizedExperiment,
@@ -38,11 +41,13 @@ Imports:
     omicsGMF,
     MsCoreUtils,
     iq,
-    matrixStats
-Suggests:
+    matrixStats,
     iSEE,
     iSEEu,
     altSEE,
+    callr,
+    httpuv
+Suggests:
     tidyverse,
     limma,
     knitr
@@ -51,6 +56,6 @@ Remotes:
 License: Artistic-2.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-Collate: utilities.R utilitiesPreprocessing.R importModule.R preprocessingModule.R	qcModule.R modelModule.R inferenceModule.R reportPreprocessingModule.R reportModelingModule.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R msqrob2PreprocessingUI.R msqrob2PreprocessingServer.R launchMsqrob2PreprocessingApp.R msqrob2ModelingUI.R msqrob2ModelingServer.R launchMsqrob2ModelingApp.R launchAltSEEApp.R
+Collate: utilities.R utilitiesPreprocessing.R importModule.R preprocessingModule.R	qcModule.R modelModule.R inferenceModule.R reportPreprocessingModule.R reportModelingModule.R msqrob2UI.R msqrob2Server.R launchMsqrob2App.R msqrob2PreprocessingUI.R msqrob2PreprocessingServer.R launchMsqrob2PreprocessingApp.R msqrob2ModelingUI.R msqrob2ModelingServer.R launchMsqrob2ModelingApp.R launchAltSEEApp.R altSEEExploreModule.R msqrob2ExploreUI.R msqrob2ExploreServer.R launchMsqrob2ExploreApp.R
 Config/roxygen2/version: 8.0.0
 RoxygenNote: 7.3.3

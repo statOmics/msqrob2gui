@@ -119,7 +119,7 @@ preprocessingUI <- function(id = "preprocessing") {
 #' @importFrom shiny moduleServer updateSelectInput observeEvent eventReactive is.reactive showNotification removeNotification renderUI
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
-#' @importFrom DT datatable renderDataTable
+#' @importFrom DT datatable
 #'
 preprocessingServer <- function(id = "preprocessing", variables) {
   moduleServer(id, function(input, output, session) {

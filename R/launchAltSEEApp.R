@@ -27,6 +27,18 @@ launchAltSEEApp <- function(maxSize = 500) {
     )
   }
 
+  # Attach S4 packages so their class definitions are registered on the search
+  # path before iSEE() tries to use them. requireNamespace() alone loads the
+  # namespace but does not attach it, which leaves S4 class validators
+  # (.SigLength etc.) unresolved when the packages have not been library()-ed
+  # beforehand.
+  suppressPackageStartupMessages({
+    library(scater)
+    library(iSEE)
+    library(iSEEu)
+    library(altSEE)
+  })
+
   options(shiny.maxRequestSize = maxSize * 1024^2)
 
   result <- new.env(parent = emptyenv())
@@ -229,7 +241,7 @@ launchAltSEEApp <- function(maxSize = 500) {
     altSEE::AltReducedDimensionPlot(PanelWidth = 6L, Experiment = altExp),
     altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = "(Main)"),
     altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = altExp),
-    iSEE::RowDataTable(RowSelectionSource = "VolcanoPlot1", PanelWidth = 6L),
+    iSEE::RowDataTable(RowSelectionSource = "AltVolcanoPlot1", PanelWidth = 6L),
     altSEE::AltRowDataTable(RowSelectionSource = "AltVolcanoPlot1", PanelWidth = 6L,
                             Experiment = altExp),
     lfap_main,

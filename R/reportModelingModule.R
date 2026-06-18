@@ -39,6 +39,7 @@ reportUI <- function(id="report")
 #' @return list of reactive inputs
 #' @rdname INTERNAL_inferenceServer
 #' @keywords internal
+#' @importFrom msqrob2 makeContrast msqrobCollect
 #'
 reportServer <- function(id="report", variables, importServerInput,preprocessingServerInput,qcServerInput, modelServerInput, inferenceServerInput){
   moduleServer(

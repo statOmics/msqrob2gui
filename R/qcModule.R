@@ -124,7 +124,7 @@ qcUI <- function(id="qc")
 #' @importFrom shiny moduleServer updateSelectInput observeEvent eventReactive is.reactive showNotification removeNotification renderUI
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
-#' @importFrom DT datatable renderDataTable
+#' @importFrom DT datatable
 #'
 qcServer <- function(id="qc", variables){
   moduleServer(
