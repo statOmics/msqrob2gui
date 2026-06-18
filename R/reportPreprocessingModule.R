@@ -53,6 +53,7 @@ reportPreprocessingServer <- function(id = "reportPreprocessing", variables, imp
 
       # ---- Preprocessing metaReactives ----
       filterList         <- metaReactive({..(preprocessingServerInput$filterList())},         varname = "filterList")
+      doZeroToNA         <- metaReactive({..(preprocessingServerInput$doZeroToNA())},         varname = "doZeroToNA")
       doLog              <- metaReactive({..(preprocessingServerInput$doLog())},              varname = "doLog")
       fCol               <- metaReactive({..(preprocessingServerInput$fCol())},               varname = "fCol")
       nameAssay          <- metaReactive({..(preprocessingServerInput$nameAssay())},          varname = "nameAssay")
@@ -102,6 +103,7 @@ reportPreprocessingServer <- function(id = "reportPreprocessing", variables, imp
           preprocessingCode <- gsub(paste0(id, "_"), "\n",
             expandChain(
               if (!is.null(preprocessingServerInput$filterList()))         invisible(filterList()),
+              if (!is.null(preprocessingServerInput$doZeroToNA()))         invisible(doZeroToNA()),
               if (!is.null(preprocessingServerInput$doLog()))              invisible(doLog()),
               if (!is.null(preprocessingServerInput$fCol()))               invisible(fCol()),
               if (!is.null(preprocessingServerInput$nameAssay()))          invisible(nameAssay()),

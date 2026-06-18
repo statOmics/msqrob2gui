@@ -4,7 +4,7 @@
 \alias{PlotNormBoxplots}
 \title{Boxplot of sample intensities}
 \usage{
-PlotNormBoxplots(pe, assayName, varName)
+PlotNormBoxplots(pe, assayName, varName, common = FALSE)
 }
 \arguments{
 \item{pe}{A \code{QFeatures} object.}

@@ -8,7 +8,6 @@
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
-#' @importFrom shiny dataTableOutput
 
 preprocessingUI <- function(id = "preprocessing") {
   fluidRow(
@@ -27,7 +26,8 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Convert zeros to NA"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(2, actionButton(NS(id, "test_zero_to_na"), "Test", class = "btn-primary"))
+          column(3, checkboxInput(NS(id, "doZeroToNA"), "Apply zero to NA", value = TRUE)),
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_zero_to_na"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         helpText("Converts all zero values to NA.")
       ),
@@ -42,9 +42,9 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Filter missing values"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(2, numericInput(NS(id, "threshold"), "Threshold", value = 1, min = 0, max = 1)),
+          column(4, sliderInput(NS(id, "threshold"), "Threshold", value = 1, min = 0, max = 1, step = 0.01)),
           column(3, textInput(NS(id, "nameFilterNAAssay"), "Name", value = "quants_filter_na")),
-          column(2, actionButton(NS(id, "test_filter_na"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_filter_na"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         helpText("Removes features with proportion of missing values above threshold."),
         uiOutput(NS(id, "missingValUI"))
@@ -56,7 +56,7 @@ preprocessingUI <- function(id = "preprocessing") {
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, checkboxInput(NS(id, "doLog"), "Apply log2 transform", value = TRUE)),
           column(3, textInput(NS(id, "nameLogAssay"), "Name", value = "quants_log")),
-          column(2, actionButton(NS(id, "test_log"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_log"), "Test", class = "btn-primary", style = "display: block;"))
         )
       ),
 
@@ -70,9 +70,9 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Filter missing values (post-aggregation)"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(2, numericInput(NS(id, "threshold2"), "Threshold", value = 1, min = 0, max = 1)),
+          column(4, sliderInput(NS(id, "threshold2"), "Threshold", value = 1, min = 0, max = 1, step = 0.01)),
           column(3, textInput(NS(id, "nameFilterNA2Assay"), "Name", value = "proteins_filter_na")),
-          column(2, actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         helpText("Removes proteins with proportion of missing values above threshold."),
         uiOutput(NS(id, "missingValUI2"))
@@ -123,6 +123,13 @@ preprocessingUI <- function(id = "preprocessing") {
 #'
 preprocessingServer <- function(id = "preprocessing", variables) {
   moduleServer(id, function(input, output, session) {
+
+    # Ensure qf_tmp is always initialised before any test runs
+    ensureQfTmp <- function() {
+      if (is.null(variables$qf_tmp) && !is.null(variables$qfeatures)) {
+        variables$qf_tmp <- variables$qfeatures
+      }
+    }
 
     # ---- Snapshot for restore ----
     observeEvent(variables$qfeatures, {
@@ -248,16 +255,17 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Zero to NA ----
     observeEvent(input$test_zero_to_na, {
-      req(variables$qfeatures)
-      
-      variables$qf_tmp <- try(QFeatures::zeroIsNA(variables$qfeatures, i = names(variables$qfeatures)))
-      
+      ensureQfTmp(); req(variables$qf_tmp)
+      if (!isTRUE(input$doZeroToNA)) {
+        showNotification("Zero to NA skipped", type = "message", duration = 3)
+        return()
+      }
+      variables$qf_tmp <- try(QFeatures::zeroIsNA(variables$qf_tmp, i = names(variables$qf_tmp)))
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
       } else {
         showNotification("Okay!", type = "message", duration = 5)
       }
-
     })
 
     # ---- Filtering UI ----
@@ -272,11 +280,11 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           column(2, selectInput(NS(id, "filterOp"), "Operator",
                                 choices = c("==", "!=", "<", ">", "<=", ">=", "%in%"))),
           column(2, textInput(NS(id, "filterVal"), "Value")),
-          column(1, actionButton(NS(id, "addFilter"), "Add", style = "margin-bottom: 0;")),
-          column(1, actionButton(NS(id, "test_filter"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(1, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_filter"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         uiOutput(NS(id, "FilterList")),
         fluidRow(style = "margin-top: 5px;",
+          column(2, actionButton(NS(id, "addFilter"), "Add")),
           column(3, actionButton(NS(id, "clearFilters"), "Clear all filters"))
         )
       )
@@ -298,7 +306,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Filter ----
     observeEvent(input$test_filter, {
-      req(variables$qf_tmp)
+      ensureQfTmp(); req(variables$qf_tmp)
       if (length(filterList()) == 0) {
         showNotification("No filters applied", type = "message", duration = 3)
         return()
@@ -325,7 +333,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
           column(3, textInput(NS(id, "nameAssay"), "Name", value = variables$nameAssayDefault)),
-          column(2, actionButton(NS(id, "test_join"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_join"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         helpText("Joins multiple assays into a single assay.")
       )
@@ -333,7 +341,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Join ----
     observeEvent(input$test_join, {
-      req(variables$qf_tmp, input$fCol, input$nameAssay)
+      ensureQfTmp(); req(variables$qf_tmp, input$fCol, input$nameAssay)
       if (length(names(variables$qf_tmp)) <= 1) return(NULL)
       variables$qf_tmp <- try({
         qf <- QFeatures::joinAssays(variables$qf_tmp, i = names(variables$qf_tmp), fcol = input$fCol, name = input$nameAssay)
@@ -349,12 +357,13 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     # ---- Missing values plot ----
     missingValAssay <- reactive({
       req(variables$qf_tmp)
-      if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+      nms <- names(variables$qf_tmp)
+      if (!is.null(input$nameFilterNAAssay) && input$nameFilterNAAssay %in% nms) {
+        input$nameFilterNAAssay
+      } else if (!is.null(input$nameAssay) && input$nameAssay %in% nms) {
         input$nameAssay
-      } else if (length(names(variables$qf_tmp)) == 1) {
-        names(variables$qf_tmp)[1]
       } else {
-        NULL
+        nms[1]
       }
     })
 
@@ -370,6 +379,11 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Filter NA ----
     observeEvent(input$test_filter_na, {
+      ensureQfTmp()
+      if (isTRUE(input$threshold >= 1)) {
+        showNotification("Filter NA skipped (threshold = 1, no features removed)", type = "message", duration = 3)
+        return()
+      }
       req(variables$qf_tmp, input$threshold, input$nameFilterNAAssay)
       filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
         input$nameAssay
@@ -389,12 +403,21 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Log transform ----
     observeEvent(input$test_log, {
+      ensureQfTmp()
       if (!isTRUE(input$doLog)) {
         showNotification("Log transform skipped (None)", type = "message", duration = 3)
         return()
       }
-      req(variables$qf_tmp, input$nameFilterNAAssay, input$nameLogAssay)
-      variables$qf_tmp <- try(QFeatures::logTransform(variables$qf_tmp, base = 2, i = input$nameFilterNAAssay, name = input$nameLogAssay))
+      req(variables$qf_tmp, input$nameLogAssay)
+      # Fall back through the chain if earlier steps were skipped
+      logInput <- if (!is.null(input$nameFilterNAAssay) && input$nameFilterNAAssay %in% names(variables$qf_tmp)) {
+        input$nameFilterNAAssay
+      } else if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
+        input$nameAssay
+      } else {
+        names(variables$qf_tmp)[1]
+      }
+      variables$qf_tmp <- try(QFeatures::logTransform(variables$qf_tmp, base = 2, i = logInput, name = input$nameLogAssay))
       if (inherits(variables$qf_tmp, "try-error")) {
         showNotification("Test failed", type = "error", duration = 5)
       } else {
@@ -413,13 +436,14 @@ preprocessingServer <- function(id = "preprocessing", variables) {
                                             "quantiles", "quantiles.robust", "Median of Ratios"),
                                 selected = variables$normMethodDefault)),
           column(3, textInput(NS(id, "nameNormAssay"), "Name", value = if (!is.null(variables$nameNormAssayDefault)) variables$nameNormAssayDefault else "quants_norm")),
-          column(2, actionButton(NS(id, "test_norm"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_norm"), "Test", class = "btn-primary", style = "display: block;"))
         )
       )
     })
 
     # ---- Test: Normalisation ----
     observeEvent(input$test_norm, {
+      ensureQfTmp()
       if (input$normMethod == "None") {
         showNotification("Normalisation skipped (None)", type = "message", duration = 3)
         return()
@@ -454,16 +478,19 @@ preprocessingServer <- function(id = "preprocessing", variables) {
                                 choices = c("None", "medianPolish", "robustSummary", "colMeans",
                                             "colMedians", "colSums", "maxLFQ"),
                                 selected = variables$aggrMethodDefault)),
+          column(3, textInput(NS(id, "nameAggrAssay"), "Name", value = variables$nameAggrAssayDefault))
+        ),
+        fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
           column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$aggrColDefault)),
-          column(2, textInput(NS(id, "nameAggrAssay"), "Name", value = variables$nameAggrAssayDefault)),
-          column(1, numericInput(NS(id, "nprecFilter"), "Min prec.", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
-          column(1, actionButton(NS(id, "test_aggr"), "Test", class = "btn-primary", style = "margin-bottom: 0;"))
+          column(2, numericInput(NS(id, "nprecFilter"), "N-peptides rule", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
+          column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_aggr"), "Test", class = "btn-primary", style = "display: block;"))
         )
       )
     })
 
     # ---- Test: Aggregation ----
     observeEvent(input$test_aggr, {
+      ensureQfTmp()
       if (input$aggrMethod == "None") {
         showNotification("Aggregation skipped (None)", type = "message", duration = 3)
         return()
@@ -516,8 +543,13 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
     # ---- Test: Filter NA post-aggregation ----
     observeEvent(input$test_filter_na2, {
+      ensureQfTmp()
       if (is.null(input$aggrMethod) || input$aggrMethod == "None") {
         showNotification("Requires aggregation first", type = "warning", duration = 4)
+        return()
+      }
+      if (isTRUE(input$threshold2 >= 1)) {
+        showNotification("Post-aggregation filter NA skipped (threshold = 1, no features removed)", type = "message", duration = 3)
         return()
       }
       req(variables$qf_tmp, input$nameAggrAssay, input$threshold2, input$nameFilterNA2Assay)
@@ -539,9 +571,11 @@ preprocessingServer <- function(id = "preprocessing", variables) {
 
       qf <- variables$qfeatures
 
-      # Step 1: zero to NA
-      qf <- try(QFeatures::zeroIsNA(qf, i = names(qf)))
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Zero to NA", type = "error"); return() }
+      # Step 1: zero to NA (in-place)
+      if (isTRUE(input$doZeroToNA)) {
+        qf <- try(QFeatures::zeroIsNA(qf, i = names(qf)))
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Zero to NA", type = "error"); return() }
+      }
 
       # Step 2: filters
       if (length(filterList()) > 0) {
@@ -563,25 +597,30 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       }
 
       # Step 4: filter NA
-      req(input$nameFilterNAAssay)
       filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(qf)) {
         input$nameAssay
       } else {
         names(qf)[1]
       }
-      qf <- try({
-        se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
-        QFeatures::addAssay(qf, se, input$nameFilterNAAssay)
-      })
-      if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
+      filterNA_out <- if (isTRUE(input$threshold >= 1)) {
+        filterNA_i  # skip — pass through the current assay name
+      } else {
+        req(input$nameFilterNAAssay)
+        qf <- try({
+          se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
+          QFeatures::addAssay(qf, se, input$nameFilterNAAssay)
+        })
+        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
+        input$nameFilterNAAssay
+      }
 
       # Step 5: log transform
       if (isTRUE(input$doLog)) {
         req(input$nameLogAssay)
-        qf <- try(QFeatures::logTransform(qf, base = 2, i = input$nameFilterNAAssay, name = input$nameLogAssay))
+        qf <- try(QFeatures::logTransform(qf, base = 2, i = filterNA_out, name = input$nameLogAssay))
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Log transform", type = "error"); return() }
       }
-      normInput <- if (!isTRUE(input$doLog)) input$nameFilterNAAssay else input$nameLogAssay
+      normInput <- if (!isTRUE(input$doLog)) filterNA_out else input$nameLogAssay
 
       # Step 6: normalisation
       req(input$normMethod)
@@ -626,8 +665,8 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         })
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Aggregation", type = "error"); return() }
       }
-      # Step 8: filter NA post-aggregation (only when aggregation was performed)
-      if (input$aggrMethod != "None") {
+      # Step 8: filter NA post-aggregation (only when aggregation was performed and threshold < 1)
+      if (input$aggrMethod != "None" && !isTRUE(input$threshold2 >= 1)) {
         req(input$nameFilterNA2Assay)
         qf <- try({
           se <- QFeatures::filterNA(qf[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = input$threshold2)[[input$nameAggrAssay]]
@@ -659,6 +698,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     return(list(
       qfeatures          = reactive(variables$qfeatures),
       filterList         = reactive(filterList()),
+      doZeroToNA         = reactive(input$doZeroToNA),
       doLog              = reactive(input$doLog),
       fCol               = reactive(input$fCol),
       nameAssay          = reactive(input$nameAssay),

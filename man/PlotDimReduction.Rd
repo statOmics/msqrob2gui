@@ -2,26 +2,21 @@
 % Please edit documentation in R/utilitiesPreprocessing.R
 \name{PlotDimReduction}
 \alias{PlotDimReduction}
-\title{Dimensionality reduction plot}
+\title{Plot precomputed dimensionality reduction}
 \usage{
-PlotDimReduction(pe, assayName, varName, method = c("MDS", "OmicsGMF"))
+PlotDimReduction(dimRedResult, varName)
 }
 \arguments{
-\item{pe}{A \code{QFeatures} object.}
+\item{dimRedResult}{List returned by \code{ComputeDimReduction}.}
 
-\item{assayName}{Character. Name of the assay to use.}
-
-\item{varName}{Character. Name of a \code{colData} variable used to colour
-the points.}
-
-\item{method}{Character. One of \code{"MDS"} or \code{"OmicsGMF"}.}
+\item{varName}{Character. Name of a \code{colData} variable for colouring.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Computes a 2D dimensionality reduction of samples and plots them coloured by
-a selected \code{colData} variable. Supports MDS (via
-\code{scater::runMDS}) and OmicsGMF (via \code{omicsGMF::runGMF}).
+Renders a scatter plot from coordinates produced by
+\code{ComputeDimReduction}, coloured by a selected \code{colData} variable.
+Changing \code{varName} does not trigger recomputation.
 }
 \keyword{internal}

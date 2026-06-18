@@ -8,7 +8,6 @@
 #' @importFrom shinydashboardPlus box
 #' @importFrom htmltools tagList h2
 #' @importFrom shinyBS bsTooltip
-#' @importFrom shiny dataTableOutput
 #' @importFrom SummarizedExperiment colData assay
 
 
@@ -77,6 +76,20 @@ qcUI <- function(id="qc")
               status = "primary", width = 6,
               solidHeader = FALSE, collapsible = TRUE,
               plotOutput(NS(id, "boxplot"))
+            )
+          ),
+              fluidRow(
+            box(
+              title = "Intensity Distributions - Common features",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "densityPlot_common"))
+            ),
+            box(
+              title = "Sample Boxplots - Common features",
+              status = "primary", width = 6,
+              solidHeader = FALSE, collapsible = TRUE,
+              plotOutput(NS(id, "boxplot_common"))
             )
           ),
           fluidRow(
@@ -210,18 +223,33 @@ qcServer <- function(id="qc", variables){
         req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
         PlotNormBoxplots(variables$qfeatures, input$selectedAssay, input$selectedVariable)
       })
+      
+      output$densityPlot_common <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+        NewPlotDensities(variables$qfeatures, input$selectedAssay, input$selectedVariable,common=TRUE)
+      })
+      
+      output$boxplot_common <- renderPlot({
+        req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
+        PlotNormBoxplots(variables$qfeatures, input$selectedAssay, input$selectedVariable,common=TRUE)
+      })
+      
 
       output$identificationsPlot <- renderPlot({
         req(variables$qfeatures, input$selectedAssay, input$selectedVariable)
         PlotIdentifications(variables$qfeatures, input$selectedAssay, input$selectedVariable)
       })
 
+      # Cache coordinates on button click only (slow step)
+      dimRedCoords <- eventReactive(input$runDimRed, {
+        req(variables$qfeatures, input$selectedAssay, input$dimRedMethod)
+        ComputeDimReduction(variables$qfeatures, input$selectedAssay, input$dimRedMethod)
+      })
+
+      # Re-render whenever color variable changes — no recomputation
       output$dimRedPlot <- renderPlot({
-        req(input$runDimRed)
-        isolate({
-          req(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
-          PlotDimReduction(variables$qfeatures, input$selectedAssay, input$selectedVariable, input$dimRedMethod)
-        })
+        req(dimRedCoords(), input$selectedVariable)
+        PlotDimReduction(dimRedCoords(), input$selectedVariable)
       })
       return(
         list(
