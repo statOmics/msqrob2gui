@@ -256,8 +256,8 @@ altSEEExploreServer <- function(id = "explore", variables) {
   )
 
   list(
-    iSEE::ReducedDimensionPlot(PanelWidth = 6L),
-    altSEE::AltReducedDimensionPlot(PanelWidth = 6L, Experiment = altExp),
+    iSEE::ReducedDimensionPlot(PanelWidth = 6L, PointSize = 3),
+    altSEE::AltReducedDimensionPlot(PanelWidth = 6L, Experiment = altExp, PointSize = 3),
     altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = "(Main)"),
     altSEE::AltVolcanoPlot(PanelWidth = 6L, Experiment = altExp),
     iSEE::RowDataTable(RowSelectionSource = "AltVolcanoPlot1", PanelWidth = 6L),

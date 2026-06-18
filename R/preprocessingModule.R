@@ -124,6 +124,10 @@ preprocessingUI <- function(id = "preprocessing") {
 preprocessingServer <- function(id = "preprocessing", variables) {
   moduleServer(id, function(input, output, session) {
 
+    # Flag set to TRUE whenever preprocessing itself writes variables$qfeatures,
+    # so the snapshot observer below knows not to treat that write as a new import.
+    preprocessingModifiedQF <- reactiveVal(FALSE)
+
     # Ensure qf_tmp is always initialised before any test runs
     ensureQfTmp <- function() {
       if (is.null(variables$qf_tmp) && !is.null(variables$qfeatures)) {
@@ -132,19 +136,22 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     }
 
     # ---- Snapshot for restore ----
+    # Fires whenever variables$qfeatures changes. If the change came from
+    # outside this module (i.e. a new import), reset the baseline and qf_tmp.
+    # If this module itself wrote variables$qfeatures (run_all / restore),
+    # the flag is TRUE and we skip the reset.
     observeEvent(variables$qfeatures, {
-      if (is.null(variables$qfeatures_import)) {
-        variables$qfeatures_import <- variables$qfeatures
-        variables$qf_tmp <- variables$qfeatures
-      } else if (ncol(SummarizedExperiment::colData(variables$qfeatures)) >
-                 ncol(SummarizedExperiment::colData(variables$qfeatures_import))) {
-        variables$qfeatures_import <- variables$qfeatures
-        variables$qf_tmp <- variables$qfeatures
+      if (preprocessingModifiedQF()) {
+        preprocessingModifiedQF(FALSE)
+        return()
       }
+      variables$qfeatures_import <- variables$qfeatures
+      variables$qf_tmp           <- variables$qfeatures
     })
 
     observeEvent(input$restore_qf, {
       req(variables$qfeatures_import)
+      preprocessingModifiedQF(TRUE)
       variables$qfeatures <- variables$qfeatures_import
       setDefaultFilters()
       updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
@@ -675,6 +682,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
       }
 
+      preprocessingModifiedQF(TRUE)
       variables$qfeatures <- qf
       remove_modal_spinner()
       showNotification("All preprocessing steps completed successfully", type = "message")
