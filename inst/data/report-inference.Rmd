@@ -52,8 +52,6 @@ Specification of qfeature file.  Note that the qfeature file is copied to the zi
 qfeaturesFile.rds respectively. 
 
 
-
-
 ## Model tab
 
 ```{r defModel}
