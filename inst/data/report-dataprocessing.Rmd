@@ -1,0 +1,223 @@
+---
+title: "Dynamic Report on preprocessing MS-based proteomics data using the msqrob2gui App"
+author: "msqrob2gui"
+date: "Developed by [statOmics](https://statomics.github.io)"
+output:
+    html_document:
+      code_download: true
+      theme: cosmo
+      toc: true
+      toc_float: true
+      highlight: tango
+      number_sections: true
+    pdf_document:
+      toc: true
+      number_sections: true
+linkcolor: blue
+urlcolor: blue
+citecolor: blue
+
+---
+
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(QFeatures)
+  library(msqrob2)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+# Import parameters
+
+Initialize all input parameters used in the GUI to import the data.
+
+```{r import-params}
+{{importCode}}
+```
+
+# Data import
+
+Import the raw data file and transform it into a QFeatures object. Note that, when the input file is in a long format, the intensity column is unique but a run column must be specified. When the input file is in a wide format, we do not need to specify a run column but multiple intensity columns are required (quantCols).
+
+```{r import}
+rawFile <- {{rawFileName}}
+
+isLong <- !is.null(runCol) && runCol != "None"
+
+pe_raw <- if (endsWith(rawFile, ".parquet")) {
+  arrow::read_parquet(rawFile)
+} else {
+  data.table::fread(rawFile, 
+                    check.names = TRUE, 
+                    integer64 = "double")
+}
+
+qf <- if (isLong) {
+  QFeatures::readQFeatures(
+    assayData = pe_raw,
+    fnames    = fnames,
+    runCol    = runCol,
+    quantCol  = quantCol,
+    name      = assayName
+  )
+} else {
+  QFeatures::readQFeatures(
+    assayData = pe_raw,
+    fnames    = fnames,
+    quantCols = which(colnames(pe_raw) %in% quantCols),
+    name      = assayName
+  )
+}
+```
+
+# Annotation
+
+Import the annotation file and set it as 'colData' of the QFeatures object.
+
+```{r annotation}
+annotFile <- {{annotFileName}}
+if (!is.null(annotFile)) {
+  annot <- data.table::fread(annotFile, 
+                             check.names = TRUE, 
+                             integer64 = "double", 
+                             stringsAsFactors = TRUE)
+  annot <- as.data.frame(annot)
+  rownames(annot) <- annot[, 1]
+  annot <- annot[rownames(colData(qf)), , drop = FALSE]
+  annot <- as.data.frame(lapply(annot, function(col) {
+    if (is.character(col)) as.factor(col) else col
+  }))
+  rownames(annot) <- rownames(colData(qf))
+  SummarizedExperiment::colData(qf) <- S4Vectors::DataFrame(annot)
+}
+```
+
+# Preprocessing parameters
+
+Initialize all input parameters used in the GUI to preprocess the data.
+
+```{r preprocessing-params}
+{{preprocessing}}
+```
+
+# Preprocessing steps
+
+Missing values are typically encoded as zeros.
+
+```{r preprocessing step 1}
+# Step 1: zero to NA
+if (doZeroToNA) {
+  qf <- QFeatures::zeroIsNA(qf, i = names(qf))
+}
+```
+
+Apply filtering steps to remove potential false positive identifications.
+
+```{r preprocessing step 2}
+# Step 2: filters
+if (length(filterList) > 0) {
+  filter_formula <- as.formula(paste("~", paste(filterList, collapse = " & ")))
+  qf <- QFeatures::filterFeatures(qf, filter_formula)
+}
+```
+
+Join the multiple assays into a single assay. The 'fcol' parameter controls the feature ID variable used to join the assays.
+
+```{r preprocessing step 3}
+# Step 3: join assays (if multiple)
+if (length(names(qf)) > 1) {
+  qf <- QFeatures::joinAssays(qf, i = names(qf), fcol = fCol, name = nameAssay)
+  qf <- qf[, , nameAssay]
+}
+```
+
+Remove features with a high proportion of missing values across samples.
+
+```{r preprocessing step 4}
+# Step 4: filter NA
+filterNA_i <- if (!is.null(nameAssay) && nameAssay %in% names(qf)) nameAssay else names(qf)[1]
+se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = threshold)[[filterNA_i]]
+qf <- QFeatures::addAssay(qf, se, nameFilterNAAssay)
+```
+
+Perform log2-transformation.
+
+```{r preprocessing step 5}
+# Step 5: log transform
+if (doLog) {
+  qf <- QFeatures::logTransform(qf, base = 2, i = nameFilterNAAssay, name = nameLogAssay)
+}
+normInput <- if (!doLog) nameFilterNAAssay else nameLogAssay
+```
+
+Apply normalisation to adjust for sample-specific loading differences.
+
+```{r preprocessing step 6}
+# Step 6: normalisation
+if (normMethod != "None") {
+  if (normMethod == "Median of Ratios") {
+    qf <- QFeatures::sweep(qf, MARGIN = 2,
+                           STATS = msqrob2::nfLogMedianOfRatios(qf, normInput),
+                           i = normInput, name = nameNormAssay)
+  } else {
+    qf <- QFeatures::normalize(qf, method = normMethod, i = normInput, name = nameNormAssay)
+  }
+}
+aggrInput <- if (normMethod == "None") normInput else nameNormAssay
+```
+
+Aggregate the features at the protein/peptide level.
+
+```{r preprocessing step 7}
+# Step 7: aggregation
+if (aggrMethod != "None") {
+  aggFun <- if (aggrMethod == "maxLFQ") {
+    function(X) iq::maxLFQ(X)$estimate
+  } else {
+    switch(aggrMethod,
+      "medianPolish"  = function(X) MsCoreUtils::medianPolish(X, na.rm = TRUE),
+      "robustSummary" = function(X) MsCoreUtils::robustSummary(X, na.rm = TRUE),
+      "colMeans"      = function(X) base::colMeans(X, na.rm = TRUE),
+      "colMedians"    = function(X) matrixStats::colMedians(X, na.rm = TRUE),
+      "colSums"       = function(X) base::colSums(X, na.rm = TRUE)
+    )
+  }
+  qf <- QFeatures::aggregateFeatures(qf, i = aggrInput, name = nameAggrAssay,
+                                      fcol = aggrCol, fun = aggFun)
+  counts <- SummarizedExperiment::assay(qf[[nameAggrAssay]], "aggcounts")
+  a      <- SummarizedExperiment::assay(qf[[nameAggrAssay]])
+  a[counts < nprecFilter] <- NA
+  SummarizedExperiment::assay(qf[[nameAggrAssay]]) <- a
+}
+```
+
+Remove proteins with a high proportion of missing values after aggregation. Note that the N-peptides rule introduces missing values for proteins supported by fewer than N peptides, so an additional filtering step is required.
+
+```{r preprocessing step 8}
+# Step 8: filter NA post-aggregation (only when aggregation was performed)
+if (aggrMethod != "None") {
+  se <- QFeatures::filterNA(qf[, , nameAggrAssay], i = nameAggrAssay, pNA = threshold2)[[nameAggrAssay]]
+  qf <- QFeatures::addAssay(qf, se, nameFilterNA2Assay)
+}
+```
+
+
+# Save the preprocessed QFeatures object
+
+If you want to save the `QFeatures` object, uncomment the line with saveRDS in the R-chunk below. 
+
+Note, that this will overwrite the QFeatures object that you downloaded from the app. 
+
+```{r save}
+#saveRDS(qf, "qfeaturesFile.rds")
+qf
+```
+
+# Session Info
+
+```{r session}
+sessionInfo()
+```

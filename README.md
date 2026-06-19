@@ -1,33 +1,45 @@
-# GUI implementation for the msqrob2 package for differentially expression analysis in mass spectrometry using the Features infrastructure
+# GUI implementation for the msqrob2 package
 
-The [msqrob2](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html) Bioconductor package ports and modernises the method presented in
-[MSqRob](https://github.com/statOmics/MSqRob) and
-[MSqRobSum](https://github.com/statOmics/MSqRobSum) to use the
+[msqrob2](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html)
+is a Bioconductor package for differentially expression analysis in
+mass spectrometry using the
 [QFeatures](https://www.bioconductor.org/packages/release/bioc/html/QFeatures.html)
 class infrastructure.
 
-The `msqrob2gui` package implements shiny apps for Bioconductor package [`msqrob2`](https://www.bioconductor.org/packages/release/bioc/html/msqrob2.html).
+The `msqrob2gui` package implements a graphical user interface by
+means of a shiny app, alleviating the need for programming skills to
+use `msqrob2`.
 
 ## Installation
 
-```{r}
-if(!requireNamespace("BiocManager", quietly = TRUE)) {
- install.packages("BiocManager")
+Get the `remotes` packages to install from GitHub
+
+```r
+# Check if remotes is installed. Otherwise install it.
+if (!require("remotes", quietly = TRUE)){
+    install.packages("remotes")
 }
-BiocManager::install("msqrob2")
-BiocManager::install("statomics/msqrob2gui")
+```
+
+Install the `msqrob2gui` package from the statOmics branch. **For the
+EBI course**, this is what you should run!
+
+```r
+remotes::install_github("statOmics/msqrob2gui", ref = "gui2modules")
+```
+
+Load the package.
+
+```r
+library(QFeaturesGUI)
 ```
 
 ## Launch app
 
-The app can be launched by loading the package and running the `launchMsqrob2App` function
+The app can be launched by loading the package and running the
+`launchMsqrob2App` function
 
 ```{r}
 library(msqrob2gui)
 launchMsqrob2App()
 ```
-
-## Use App
-
-An instruction video can be found on https://youtu.be/F5d0E-U4rOM
-

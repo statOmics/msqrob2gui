@@ -1,4 +1,182 @@
-#Function to convert data paths if on windows
+#' An wrapper function to handle errors and warnings
+#' Will create a notification and add the exception to the global exception data
+#' @param func function that is wrapped
+#' @param component_name `str` name of the component (will be reported in the exception message)
+#' @param ... arguments to be passed to the function
+#'
+#' @return Does not return anything but will create a notification and add the exception to the global exception data
+#' @rdname INTERNAL_error_handler
+#' @keywords internal
+#'
+#' @importFrom shiny showNotification
+#' @importFrom htmltools HTML div
+error_handler <- function(func, component_name, ...) {
+  tryCatch(
+    {
+      func_call <- gsub(
+        "\\s+", " ",
+        paste(deparse(substitute(func(...))), collapse = " ")
+      )
+      func(...)
+    },
+    warning = function(w) {
+      time <- Sys.time()
+      showNotification(
+        HTML(
+          paste0(
+            div(HTML(
+              paste0(
+                "<b> Warning in ",
+                component_name,
+                " </b> at ", format(time, "%H:%M:%S")
+              )
+            )),
+            div(HTML(
+              "<i>Check the top right exception dropdown menu for more details</i>" # nolint
+            ))
+          )
+        ),
+        duration = 30,
+        type = "warning"
+      )
+      add_exception(
+        title = paste0("Warning in ", component_name),
+        type = "warning",
+        func_call = func_call,
+        message = conditionMessage(w),
+        full_message = w,
+        time = time
+      )
+      suppressWarnings(func(...))
+    },
+    error = function(e) {
+      time <- Sys.time()
+      showNotification(
+        HTML(
+          paste0(
+            div(HTML(
+              paste0(
+                "<b> Error in ",
+                component_name,
+                " </b> at ", format(time, "%H:%M:%S")
+              )
+            )),
+            div(HTML(
+              "<i>Check the top right exception dropdown menu for more details</i>" # nolint
+            ))
+          )
+        ),
+        duration = 30,
+        type = "error"
+      )
+      add_exception(
+        title = paste0("Error in ", component_name),
+        type = "error",
+        func_call = func_call,
+        message = conditionMessage(e),
+        full_message = e,
+        time = time
+      )
+      return(NULL)
+    }
+  )
+}
+
+#' A function that will add an exception entry to the global exception data
+#'
+#' @param title `str` title of the exception
+#' @param type `str` type of the exception c("warning", "error")
+#' @param func_call `str` function call that caused the exception
+#' @param message `str` message of the exception
+#' @param full_message `str` full message of the exception
+#' @param time `POSIXct` time of the exception
+#'
+#' @return does not return anything but adds an exception to the global exception data
+#' @rdname INTERNAL_add_exception
+#' @keywords internal
+#'
+#' @importFrom shiny isolate
+add_exception <- function(title, type, func_call, message, full_message, time) {
+  new_data <- data.frame(
+    title = as.character(title),
+    type = as.character(type),
+    func_call = as.character(func_call),
+    message = as.character(message),
+    full_message = as.character(full_message),
+    time = as.POSIXct(time),
+    stringsAsFactors = FALSE
+  )
+  old_data <- isolate(variables$exception_data)
+  variables$exception_data <- rbind(new_data, old_data)
+}
+
+
+#' A function that will subset the assays of a QFeatures object
+#' @param qfeatures `QFeatures` object to subset
+#' @param pattern `str` pattern to match the assays names
+#' @return `QFeatures` object with the subsetted assays
+#' @rdname INTERNAL_page_assays_subset
+#' @keywords internal
+#'
+#' @importFrom QFeatures QFeatures
+#'
+page_assays_subset <- function(qfeatures, pattern=NULL) {
+  to_process <- if (is.null(pattern)) {
+    1:length(qfeatures)
+  } else grep(
+    pattern,
+    names(qfeatures),
+    fixed = TRUE
+  )
+  if (length(qfeatures) > 0 && length(to_process) == 0) {
+    showModal(modalDialog(
+      title = "Step not found",
+      HTML(paste0(
+        "<i>", "The output from the previous step could not ",
+        "be found. Are you sure you have saved the processed ",
+        "data from the previous step?", "</i>"))
+    ))
+    QFeatures()
+  } else {
+    suppressMessages(suppressWarnings(qfeatures[, , to_process]))
+  }
+}
+
+
+#' Will convert a qfeatures object to a summary data.frame object
+#'
+#' @param qfeatures a qfeatures object
+#'
+#' @return a data.frame object
+#' @rdname INTERNAL_qfeatures_to_df
+#' @keywords internal
+#'
+qfeatures_to_df <- function(qfeatures) {
+  df <- data.frame(
+    "Name" = rep.int(0, length(qfeatures)),
+    "Class" = rep.int(0, length(qfeatures)),
+    "nrows" = rep.int(0, length(qfeatures)),
+    "ncols" = rep.int(0, length(qfeatures))
+  )
+  for (i in seq_along(qfeatures)) {
+    df[i, "Name"] <- names(qfeatures)[[i]]
+    df[i, "Class"] <- class(qfeatures[[i]])[[1]]
+    df[i, "nrows"] <- nrow(qfeatures[[i]])[[1]]
+    df[i, "ncols"] <- ncol(qfeatures[[i]])[[1]]
+  }
+
+  df
+}
+
+
+#' Function to convert data paths if on windows
+#'
+#' @param datapath string with path to file
+#'
+#' @return string
+#' @rdname INTERNAL_getDataPath
+#' @keywords internal
+#'
 getDataPath <- function(datapath){
   if(Sys.info()['sysname']=="Windows"){
     datapath <- gsub("\\","/",datapath, fixed=TRUE)
@@ -6,175 +184,342 @@ getDataPath <- function(datapath){
   return(datapath)
 }
 
-#Helper Function to plot densities
-getDensXlimYlim <- function(se){
-  densAll=apply(assay(se),2,density,na.rm=TRUE)
-  ymax=max(vapply(densAll,function(d) max(d$y),1))
-  rangematrix <- vapply(densAll,function(d) range(d$x, na.rm=TRUE), c(1,1)) #no longer range(eset), but range of d$x!
-  xlim=range(rangematrix,na.rm=TRUE)
-  ylim=c(0,ymax)
-  return(list(densAll=densAll, xlim=xlim, ylim=ylim))
-}
 
-#Function to plot densities
-plotDens <- function(se,
-                     xlim=NULL,
-                     ylim=NULL,
-                     colors=1,
-                     las=1,
-                     frame.plot=FALSE,
-                     ...){
-      hlp <- getDensXlimYlim(se)
-      if (is.null(xlim)) xlim<-hlp$xlim
-      if (is.null(ylim)) ylim <- hlp$ylim
-      if (length(colors)>1) {
-        plot(hlp$densAll[[1]],col=colors[1],xlim=xlim,ylim=ylim, las=las, frame.plot=frame.plot, main="",...)
-        for (i in 2:ncol(se)) lines(hlp$densAll[[i]],col=colors[i])
-      } else {
-        plot(hlp$densAll[[1]],xlim=xlim,ylim=ylim, las=las, frame.plot=frame.plot, main="",...)
-        for (i in 2:ncol(se)) lines(hlp$densAll[[i]])
-      }
-}
 
-#Function for volcano plot
+
+#' Function for volcano plot
+#'
+#' @param dataset dataframe with variables logFC: log2 fold changes and pval: pvalues. Typically output from the hypothesisTest function from msqrob2
+#' @param clickInfo clickInfo object with the selection of features in plot or DT data table
+#' @param ranges ranges object from the selectio nof features in plot
+#' @param input input object with reactive values passed through via the server UI.
+#'
+#' @return ggplot object
+#' @rdname INTERNAL_makeVolcanoPlot
+#' @keywords internal
+#' @importFrom ggplot2 ggplot geom_point scale_color_manual theme_minimal coord_cartesian aes alpha
+#'
+#'
 makeVolcanoPlot <- function(dataset,
                             clickInfo,
                             input,
                             ranges){
   if (!is.null(dataset)){
-  volcano <- ggplot(dataset,
-                    aes(x = logFC,
-                    y = -log10(pval),
-                    color = adjPval < input$alpha)) +
-            geom_point(cex = 2.5) +
-            scale_color_manual(values = alpha(c("black", "red"), 0.5)) +
-            theme_minimal() +
-            coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE)
+    volcano <- ggplot(dataset,
+                      aes(x = logFC,
+                          y = -log10(pval),
+                          color = adjPval < input$alpha)) +
+      geom_point(cex = 2.5) +
+      scale_color_manual(values = alpha(c("black", "red"), 0.5)) +
+      theme_minimal() +
+      coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = TRUE)
 
 
-  s <- input$table_rows_selected
-  if (length(s)) {
-    subdataset <- clickInfo()[s, , drop = FALSE]
-    return(volcano +
-           geom_point(data=subdataset[subdataset$adjPval<input$alpha,],col="firebrick",size=5,show.legend=FALSE) +
-           geom_point(data=subdataset[subdataset$adjPval>=input$alpha,],col="#112446",size=5,show.legend=FALSE)
-           )
+    s <- input$table_rows_selected
+    if (length(s)) {
+      subdataset <- clickInfo()[s, , drop = FALSE]
+      return(volcano +
+               geom_point(data=subdataset[subdataset$adjPval<input$alpha,],col="firebrick",size=5,show.legend=FALSE) +
+               geom_point(data=subdataset[subdataset$adjPval>=input$alpha,],col="#112446",size=5,show.legend=FALSE)
+      )
     } else {
-    return(return(volcano))
+      return(return(volcano))
     }
   }
 }
 
-#Function to construct detail plot
+#' Function for detailplot
+#'
+#' @param pe QFeatures object
+#' @param clickInfo clickInfo object with the selection of features in plot or DT data table
+#' @param inputServerInput list with reactive values returned by inputModule Server
+#' @param detailServerInput input object with reactive values passed through via the inference Server UI.
+#'
+#' @return ggplot object
+#' @rdname INTERNAL_makeDetailPlots
+#' @keywords internal
+#'
+#' @importFrom ggplot2 ggplot geom_point geom_line facet_grid theme labs  geom_boxplot  scale_shape_manual aes element_text position_jitter
+#'
 makeDetailPlots <- function(pe,
                             clickInfo,
-                            input){
-    if (!is.null(pe)){
-        s <- input$table_rows_selected
-        if (length(s)==1)
-        {
-          featureName <- rownames(clickInfo())[s]
-          pePlot <- pe[featureName,,c("featureNorm","summarized")]
-          pePlotDf <- data.frame(longFormat(pePlot))
-          pePlotDf$assay <- factor(pePlotDf$assay,
-                                  levels = c("featureNorm", "summarized"))
-          if (input$selColDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selColDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selColDetailPlot2]])=="character"){
-              pePlotDf[,input$selColDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selColDetailPlot2]))
-              }
-          }
-          if (input$selVertDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selVertDetailPlot2]])=="factor" || class(colData(pePlot)[[input$selVertDetailPlot2]])=="character"){
-              pePlotDf[,input$selVertDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selVertDetailPlot2]))
-              }
-          }
-          if (input$selHorDetailPlot2!="none"){
-              if(class(colData(pePlot)[[input$selHorDetailPlot2]])=="factor"||class(colData(pePlot)[[input$selHorDetailPlot2]])=="character"){
-              pePlotDf[,input$selHorDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,input$selHorDetailPlot2]))
-              }
-          }
-          if (input$logtransform) {
-             ylab <- "feature intensity (log2)"
-             } else {
-             ylab <- "feature intensity"
-             }
-          p1 <- ggplot(data = pePlotDf,
-                 aes(x = colname,
-                     y = value,
-                     group = rowname)) +
-              geom_line() +
-              geom_point() +
-              facet_grid(~ assay) +
-              labs(title = featureName, x = "sample", y = ylab) + 
-              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) 
-            
-          if (input$selColDetailPlot2!="none") {
-              if (class(pePlotDf[[input$selColDetailPlot2]])=="factor") {
-                p2 <- ggplot(pePlotDf, aes(x = colname, y = value,fill=pePlotDf[,input$selColDetailPlot2]))
-                }
-              } else {
-              p2 <- ggplot(pePlotDf, aes(x = colname, y = value))
-              }
-          p2 <- p2 +
-              geom_boxplot(outlier.shape = NA) +
-              geom_point(position = position_jitter(width = .1), aes(shape = rowname)) +
-              scale_shape_manual(values = 1:nrow(pePlotDf)) +
-              labs(title = featureName, x = "sample", y = ylab) +
-              theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
-              facet_grid(~ assay)
-            
-          if (input$selVertDetailPlot2!="none"|input$selHorDetailPlot2!="none"){
-              if (input$selVertDetailPlot2=="none") {
-                  if (class(pePlotDf[[input$selHorDetailPlot2]])=="factor")
-                      p2 <- p2 + facet_grid(~assay+pePlotDf[,input$selHorDetailPlot2])
-                  } else {
-                  if (input$selHorDetailPlot2=="none"){
-                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~assay)
-                      } else {
-                      p2 <- p2 + facet_grid(pePlotDf[,input$selVertDetailPlot2]~assay+pePlotDf[,input$selHorDetailPlot2])
-                      }
-                  }
-          }
-          return(list(p2,p1))
+                            detailServerInput,
+                            inputServerInput){
+  if (!is.null(pe)){
+    s <- detailServerInput$table_rows_selected
+    if (length(s)==1)
+    {
+      featureName <- rownames(clickInfo())[s]
+      selectedAssayNames <- c(detailServerInput$selectedLowLevelAssay[!(detailServerInput$selectedLowLevelAssay %in% inputServerInput$selectedAssay())], inputServerInput$selectedAssay())
+      pePlot <- pe[featureName,,selectedAssayNames]
+      pePlotDf <- data.frame(longForm(pePlot))
+      pePlotDf$assay <- factor(pePlotDf$assay,
+                               levels = selectedAssayNames)
+      if (detailServerInput$selColDetailPlot2!="none"){
+        if(class(colData(pePlot)[[detailServerInput$selColDetailPlot2]])=="factor" || class(colData(pePlot)[[detailServerInput$selColDetailPlot2]])=="character"){
+          pePlotDf[,detailServerInput$selColDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,detailServerInput$selColDetailPlot2]))
+        }
+      }
+      if (detailServerInput$selVertDetailPlot2!="none"){
+        if(class(colData(pePlot)[[detailServerInput$selVertDetailPlot2]])=="factor" || class(colData(pePlot)[[detailServerInput$selVertDetailPlot2]])=="character"){
+          pePlotDf[,detailServerInput$selVertDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,detailServerInput$selVertDetailPlot2]))
+        }
+      }
+      if (detailServerInput$selHorDetailPlot2!="none"){
+        if(class(colData(pePlot)[[detailServerInput$selHorDetailPlot2]])=="factor"||class(colData(pePlot)[[detailServerInput$selHorDetailPlot2]])=="character"){
+          pePlotDf[,detailServerInput$selHorDetailPlot2] <- as.factor(as.character(colData(pePlot)[pePlotDf$colname,detailServerInput$selHorDetailPlot2]))
+        }
+      }
+      #if (detailServerInput$logtransform) {
+      #   ylab <- "feature intensity (log2)"
+      #   } else {
+      #   ylab <- "feature intensity"
+      #   }
+      ylab <- "feature intensity"
+
+      p1 <- ggplot(data = pePlotDf,
+                   aes(x = colname,
+                       y = value,
+                       group = rowname)) +
+        geom_line() +
+        geom_point() +
+        facet_grid(~ assay) +
+        labs(title = featureName, x = "sample", y = ylab) +
+        theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5))
+
+      if (detailServerInput$selColDetailPlot2!="none") {
+        if (class(pePlotDf[[detailServerInput$selColDetailPlot2]])=="factor") {
+          p2 <- ggplot(pePlotDf, aes(x = colname, y = value,fill=pePlotDf[,detailServerInput$selColDetailPlot2]))
+        }
+      } else {
+        p2 <- ggplot(pePlotDf, aes(x = colname, y = value))
+      }
+      p2 <- p2 +
+        geom_boxplot(outlier.shape = NA) +
+        geom_point(position = position_jitter(width = .1), aes(shape = rowname)) +
+        scale_shape_manual(values = 1:nrow(pePlotDf)) +
+        labs(title = featureName, x = "sample", y = ylab) +
+        theme(axis.text.x = element_text(angle = 70, hjust = 1, vjust = 0.5)) +
+        facet_grid(~ assay)
+
+      if (detailServerInput$selVertDetailPlot2!="none"|detailServerInput$selHorDetailPlot2!="none"){
+        if (detailServerInput$selVertDetailPlot2=="none") {
+          if (class(pePlotDf[[detailServerInput$selHorDetailPlot2]])=="factor")
+            p2 <- p2 + facet_grid(~assay+pePlotDf[,detailServerInput$selHorDetailPlot2])
+        } else {
+          if (detailServerInput$selHorDetailPlot2=="none"){
+            p2 <- p2 + facet_grid(pePlotDf[,detailServerInput$selVertDetailPlot2]~assay)
+          } else {
+            p2 <- p2 + facet_grid(pePlotDf[,detailServerInput$selVertDetailPlot2]~assay+pePlotDf[,detailServerInput$selHorDetailPlot2])
           }
         }
+      }
+      return(list(p2,p1))
+    }
+  }
 }
 
-##' Copied from MSnbase
-##' Given a text spread sheet \code{f} and a \code{pattern} to
-##' be matched to its header (first line in the file), the function
-##' returns the matching columns names or indices of the
-##' corresponding \code{data.frame}.
-##'
-##' The function starts by reading the first line of the file (or connection)
-##' \code{f} with \code{\link{readLines}}, then splits it
-##' according to the optional \code{...} arguments (it is important to
-##' correctly specify \code{\link{strsplit}}'s \code{split} character vector here)
-##' and then matches \code{pattern} to the individual column names using
-##' \code{\link{grep}}.
-##'
-##' Similarly, \code{getEcols} can be used to explore the column names and
-##' decide for the appropriate \code{pattern} value.
-##'
-##' These functions are useful to check the parameters to be provided to
-##' \code{\link{readMSnSet2}}.
-##'
-##' @title Returns the matching column names of indices.
-##' @param f A connection object or a \code{character} string to be
-##'     read in with \code{readLines(f, n = 1)}.
-##' @param pattern A \code{character} string containing a regular
-##'     expression to be matched to the file's header.
-##' @param ... Additional parameters passed to \code{\link{strsplit}}
-##'     to split the file header into individual column names.
-##' @param n An \code{integer} specifying which line in file \code{f}
-##'     to grep (get). Default is 1. Note that this argument must be
-##'     named.
-##' @return Depending on \code{value}, the matching column names of
-##'     indices. In case of \code{getEcols}, a \code{character} of
-##'     column names.
-##' @seealso \code{\link{readMSnSet2}}
-##' @author Laurent Gatto
-grepEcols <- function(f, pattern, ..., n = 1)
-  grep(pattern, strsplit(readLines(f, n), ...)[n][[1]])
+#' Function for plotting densities of features
+#'
+#' @param pe QFeatures object
+#' @param assayName string with name of QFeatures assay
+#' @param varName string with name of variable in colData used to color the density curves
+#' @return ggplot object
+#' @rdname INTERNAL_plotDensities
+#' @keywords internal
+#'
+#' @importFrom ggplot2 ggplot geom_density aes_string
+#' @importFrom dplyr mutate
+#' @importFrom tidyr gather
+#' @importFrom SummarizedExperiment assay
+#'
+plotDensities <- function(pe, assayName, varName)
+{
+  varName <- as.character(varName)
+  pe[[assayName]] |>
+    assay() |>
+    as.data.frame() |>
+    gather(sample, intensity) |>
+    mutate({{varName}}:=colData(pe)[sample,varName]) |>
+    ggplot(aes_string(x="intensity",group="sample",col=factor(varName))) +
+    geom_density()
+}
+
+#' Function for plotting densities of features
+#'
+#' @param dataset data frame returned by hypothesisTest function of msqrob2
+#' @param sel selection of features to be included in plot
+#' @param regulation string "up", "down" or "both" to plot only upregulated, downregulated or all DE features.
+#' @return baseplot object
+#' @rdname INTERNAL_plotDensities
+#' @keywords internal
+#'
+#' @importFrom dplyr filter
+#'
+makeBoxplotFC<-function(dataset, sel, regulation="both")
+{
+  if (regulation =="both")
+    boxplot(dataset[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
+  if (regulation =="up")
+    boxplot((dataset|>dplyr::filter(logFC>0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
+  if (regulation =="down")
+    boxplot((dataset|>dplyr::filter(logFC<0))[sel,"logFC"], xlab="logFC",horizontal=TRUE,ylim=range(dataset[["logFC"]],na.rm=TRUE))
+}
+
+
+#' Function for pca plot of samples
+#'
+#' @param pe QFeatures object
+#' @param assayName string with name of QFeatures assay
+#' @param varName string with name of variable in colData used to color the density curves
+#' @return ggplot object
+#' @rdname INTERNAL_plotPCA
+#' @keywords internal
+#'
+#' @importFrom pcaMethods pca scores
+#' @importFrom ggplot2 ggplot geom_point xlab ylab sym
+#'
+#'
+
+plotPCA <- function(pe, assayName, varName)
+{
+  varName <- as.character(varName)
+
+  dat <- pe[[assayName]] |>
+    assay() |>
+    t()
+
+  dat[is.nan(dat)] <- NA
+
+  pc <- dat |>
+    pca(method="nipals")
+
+  df <- merge(scores(pc),colData(pe),by = 0)
+
+  ggplot(df, aes(PC1, PC2, col = !!sym(varName))) +
+    geom_point() +
+    xlab(paste0("PC1 (", round(pc@R2[1] * 100,1),"%)")) +
+    ylab(paste0("PC2 (", round(pc@R2[2] * 100,1),"%)"))
+}
+
+#' New function for plotting densities of features
+#'
+#' @param pe QFeatures object
+#' @param assayName string with name of QFeatures assay
+#' @param varName string with name of variable in colData used to color the density curves
+#' @return ggplot object
+#' @rdname INTERNAL_plotDensities
+#' @keywords internal
+#'
+#' @importFrom ggplot2 ggplot aes geom_density geom_boxplot geom_col geom_bar geom_point annotate labs theme_minimal theme_bw theme_void theme element_text
+#' @importFrom grid unit
+#' @importFrom dplyr filter group_by summarise mutate n_distinct
+#' @importFrom QFeatures longForm
+#' @importFrom SummarizedExperiment assay colData rowData
+#' @importFrom scater runMDS
+#' @importFrom SingleCellExperiment reducedDim
+#' @importFrom omicsGMF runGMF
+#'
+PlotIdentifications <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    as.data.frame() |>
+    filter(!is.na(value)) |>
+    group_by(colname) |>
+    summarise(IDs = n_distinct(rowname), varCol = first(.data[[varName]]), .groups = "drop") |>
+    ggplot(aes(x = colname, y = IDs, fill = as.factor(varCol))) +
+    geom_col() +
+    labs(
+      title = paste("Identifications per sample —", assayName),
+      x     = "Sample",
+      y     = "Identifications",
+      fill  = varName
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+
+PlotChargeStates <- function(pe, assayName, chargeVar = "Precursor.Charge") {
+  if (!chargeVar %in% colnames(rowData(pe[[assayName]]))) {
+    return(
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = paste0("'", chargeVar, "' not available for this dataset"),
+                 size = 5, colour = "grey40") +
+        theme_void()
+    )
+  }
+  longForm(pe[, , assayName],
+           colvars = colnames(colData(pe)),
+           rowvars = chargeVar) |>
+    as.data.frame() |>
+    filter(!is.na(value)) |>
+    filter(.data[[chargeVar]] <= 4) |>
+    ggplot(aes(x = colname)) +
+    geom_bar(aes(fill = factor(.data[[chargeVar]], levels = 4:1)),
+             colour = "black") +
+    labs(
+      title = paste("Peptide types per sample —", assayName),
+      x     = "Sample",
+      y     = "Count",
+      fill  = "Charge state"
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+PlotNormBoxplots <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    ggplot() +
+    aes(x = colname, y = value, fill = as.factor(.data[[varName]])) +
+    geom_boxplot(outlier.shape = NA) +
+    labs(
+      title = paste("Sample intensities —", assayName),
+      x     = "Sample",
+      y     = "Intensity",
+      fill  = varName
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x       = element_blank(),
+      axis.ticks.x      = element_blank(),
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+NewPlotDensities <- function(pe, assayName, varName) {
+  longForm(pe[, , assayName], colvars = varName) |>
+    ggplot() +
+    aes(x = value, group = colname, col = as.factor(.data[[varName]])) +
+    geom_density() +
+    labs(
+      title = paste("Intensity distributions —", assayName),
+      x     = "Intensity",
+      y     = "Density",
+      col   = varName
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position   = "right",
+      legend.title      = element_text(face = "bold"),
+      legend.key.height = unit(0.6, "cm")
+    )
+}
+
+
 
 
