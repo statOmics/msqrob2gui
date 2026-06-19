@@ -58,7 +58,11 @@ altSEEExploreUI <- function(id = "explore") {
 altSEEExploreServer <- function(id = "explore", variables) {
   moduleServer(id, function(input, output, session) {
 
-    rv <- reactiveValues(isee_proc = NULL, isee_port = NULL, isee_url = NULL)
+    # Fixed port for the entire session — URL stays the same across re-launches.
+    isee_port <- httpuv::randomPort()
+    isee_url  <- sprintf("http://127.0.0.1:%d", isee_port)
+
+    rv <- reactiveValues(isee_proc = NULL, isee_polling = FALSE, isee_url = NULL)
 
     output$selectAssay <- renderUI({
       req(variables$qfeatures)
@@ -139,14 +143,15 @@ altSEEExploreServer <- function(id = "explore", variables) {
       mappingKey <- if (!is.null(input$selectedMappingKey) && nzchar(input$selectedMappingKey)) input$selectedMappingKey else NULL
       panels     <- .altSEE_panels(input$selectedAssay, input$selectedAltExp, xAxisVar, mappingKey)
 
-      tmp  <- tempfile(fileext = ".rds")
+      tmp <- tempfile(fileext = ".rds")
       saveRDS(list(sce = sce, panels = panels), tmp)
-      port <- httpuv::randomPort()
 
-      # Kill any existing iSEE background process before launching a new one
+      # Kill any existing iSEE background process before launching a new one.
+      # The new process starts on the same fixed port so the URL never changes.
       if (!is.null(rv$isee_proc)) {
         try(rv$isee_proc$kill(), silent = TRUE)
         rv$isee_proc <- NULL
+        Sys.sleep(0.5)  # give the OS time to release the port
       }
 
       proc <- callr::r_bg(
@@ -158,44 +163,57 @@ altSEEExploreServer <- function(id = "explore", variables) {
           app <- iSEE::iSEE(dat$sce, initial = dat$panels)
           shiny::runApp(app, port = port, host = "127.0.0.1", launch.browser = FALSE)
         },
-        args      = list(tmp = tmp, port = port),
+        args      = list(tmp = tmp, port = isee_port),
         supervise = FALSE
       )
 
-      rv$isee_proc <- proc
-      rv$isee_port <- port
-      rv$isee_url  <- sprintf("http://127.0.0.1:%d", port)
+      rv$isee_proc    <- proc
+      rv$isee_url     <- isee_url
+      rv$isee_polling <- TRUE
 
+      first_launch <- input$launchISEE == 1L
       showNotification(
-        "iSEE is starting — it will open in a new browser tab shortly.",
+        if (first_launch)
+          "iSEE is starting — it will open in a new browser tab shortly."
+        else
+          "iSEE is restarting — refresh the existing iSEE tab when it is ready.",
         type = "message", duration = 6
       )
     })
 
-    # Poll every 600 ms until iSEE's port accepts connections, then open a new browser tab.
+    # Poll every 600 ms until the fixed port accepts connections.
+    # On first launch, open a new tab. On re-launch the URL is the same so
+    # the user just refreshes — no new tab is opened.
     isee_timer <- reactiveTimer(600)
     observe({
-      req(rv$isee_port)
+      req(rv$isee_polling)
       isee_timer()
-      port <- rv$isee_port
       ok <- tryCatch({
-        con <- socketConnection("127.0.0.1", port = port,
+        con <- socketConnection("127.0.0.1", port = isee_port,
                                 blocking = TRUE, timeout = 0.5, open = "rb")
         close(con)
         TRUE
       }, error = function(e) FALSE)
       if (ok) {
-        url          <- rv$isee_url
-        rv$isee_port <- NULL   # stop the polling loop
-        shinyjs::runjs(sprintf('window.open("%s", "_blank")', url))
+        rv$isee_polling <- FALSE
+        if (input$launchISEE == 1L) {
+          shinyjs::runjs(sprintf('window.open("%s", "_blank")', isee_url))
+        } else {
+          showNotification("iSEE is ready — refresh the iSEE tab.",
+                           type = "message", duration = 5)
+        }
       }
     })
 
     output$iseeStatus <- renderUI({
       if (!is.null(rv$isee_url)) {
         tagList(
-          helpText("iSEE is running. If it did not open automatically:"),
-          tags$a(href = rv$isee_url, target = "_blank", rv$isee_url)
+          helpText("iSEE address (fixed for this session):"),
+          tags$a(href = isee_url, target = "_blank", isee_url),
+          if (rv$isee_polling)
+            helpText("Starting… please wait.")
+          else
+            helpText("Ready. Refresh the iSEE tab after re-launching.")
         )
       }
     })

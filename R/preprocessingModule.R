@@ -153,6 +153,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       req(variables$qfeatures_import)
       preprocessingModifiedQF(TRUE)
       variables$qfeatures <- variables$qfeatures_import
+      variables$qf_tmp <- variables$qfeatures_import
       setDefaultFilters()
       updateTextInput(session, "nameLogAssay", value = variables$nameLogAssayDefault)
       showNotification("QFeatures restored from import", type = "message")

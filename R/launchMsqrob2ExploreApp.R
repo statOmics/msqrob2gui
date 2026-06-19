@@ -6,6 +6,7 @@
 #' explore results.
 #'
 #' @param maxSize maximum memory size that input files are allowed to have in Mb
+#' @param launch.browser logical; if TRUE (default) the app opens in the system browser
 #'
 #' @return shiny application object
 #'
@@ -16,7 +17,7 @@
 #'
 #' @import shiny shinymeta QFeatures SummarizedExperiment shinybusy
 
-launchMsqrob2ExploreApp <- function(maxSize = 500) {
+launchMsqrob2ExploreApp <- function(maxSize = 500, launch.browser = TRUE) {
   required     <- c("scater", "iSEE", "iSEEu", "altSEE", "callr")
   missing_pkgs <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_pkgs) > 0) {
@@ -30,5 +31,5 @@ launchMsqrob2ExploreApp <- function(maxSize = 500) {
     )
   }
   options(shiny.maxRequestSize = maxSize * 1024^2)
-  shinyApp(ui = msqrob2ExploreUI, server = msqrob2ExploreServer)
+  shinyApp(ui = msqrob2ExploreUI, server = msqrob2ExploreServer, options = list(launch.browser = launch.browser))
 }
