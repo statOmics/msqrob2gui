@@ -1,6 +1,7 @@
 #' Launches the msqrob2 Shiny App
 #'
 #' @param maxSize maximum memory size that input files are allowed to have in Mb
+#' @param launch.browser logical; if TRUE (default) the app opens in the system browser
 #'
 #' @export launchMsqrob2App
 #'
@@ -14,8 +15,8 @@
 
 
 # wrapper for shiny::shinyApp()
-launchMsqrob2App <- function(maxSize=500) {
+launchMsqrob2App <- function(maxSize = 500, launch.browser = TRUE) {
   shinyjs::useShinyjs()
-  options(shiny.maxRequestSize=maxSize*1024^2)
-  shinyApp(ui = msqrob2UI, server = msqrob2Server)
+  options(shiny.maxRequestSize = maxSize * 1024^2)
+  shinyApp(ui = msqrob2UI, server = msqrob2Server, options = list(launch.browser = launch.browser))
 }

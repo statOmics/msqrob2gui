@@ -63,6 +63,7 @@ reportServer <- function(id="report", variables, importServerInput,preprocessing
 
           # Copy raw input and annotation files so they are bundled in the zip
           include_files <- "qfeaturesFile.rds"
+          on.exit(unlink(include_files[file.exists(include_files)]), add = TRUE)
 
           if (!is.null(variables$rawFilePath) && file.exists(variables$rawFilePath)) {
             file.copy(variables$rawFilePath, variables$rawFileName, overwrite = TRUE)

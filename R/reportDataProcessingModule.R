@@ -78,6 +78,7 @@ reportDataProcessingServer <- function(id = "reportDataProcessing", variables, i
           peOut <- variables$qfeatures
           saveRDS(peOut, "qfeaturesFile.rds")
           include_files <- "qfeaturesFile.rds"
+          on.exit(unlink(include_files[file.exists(include_files)]), add = TRUE)
 
           if (!is.null(variables$rawFilePath) && file.exists(variables$rawFilePath)) {
             file.copy(variables$rawFilePath, variables$rawFileName, overwrite = TRUE)

@@ -97,6 +97,7 @@ reportCombinedServer <- function(id = "report", variables,
         # 1. Save final QFeatures RDS
         saveRDS(variables$qfeatures, "qfeaturesFile.rds")
         include_files <- "qfeaturesFile.rds"
+        on.exit(unlink(include_files[file.exists(include_files)]), add = TRUE)
 
         # 2. Copy raw input and annotation files
         if (!is.null(variables$rawFilePath) && file.exists(variables$rawFilePath)) {

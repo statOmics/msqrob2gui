@@ -8,6 +8,7 @@
 #' refit, then re-launch iSEE to explore the updated results.
 #'
 #' @param maxSize maximum memory size that input files are allowed to have in Mb
+#' @param launch.browser logical; if TRUE (default) the app opens in the system browser
 #'
 #' @return shiny application object
 #'
@@ -18,7 +19,7 @@
 #'
 #' @import shiny shinymeta QFeatures SummarizedExperiment shinybusy
 
-launchMsqrob2ModellingApp <- function(maxSize = 500) {
+launchMsqrob2ModellingApp <- function(maxSize = 500, launch.browser = TRUE) {
   required     <- c("scater", "iSEE", "iSEEu", "altSEE", "callr")
   missing_pkgs <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_pkgs) > 0) {
@@ -32,7 +33,7 @@ launchMsqrob2ModellingApp <- function(maxSize = 500) {
     )
   }
   options(shiny.maxRequestSize = maxSize * 1024^2)
-  shinyApp(ui = msqrob2ModellingUI, server = msqrob2ModellingServer)
+  shinyApp(ui = msqrob2ModellingUI, server = msqrob2ModellingServer, options = list(launch.browser = launch.browser))
 }
 
 #' @rdname launchMsqrob2ModellingApp
