@@ -4,10 +4,12 @@
 \alias{launchMsqrob2DataProcessingApp}
 \title{Launches the msqrob2 Data Processing Shiny App}
 \usage{
-launchMsqrob2DataProcessingApp(maxSize = 500)
+launchMsqrob2DataProcessingApp(maxSize = 500, launch.browser = TRUE)
 }
 \arguments{
 \item{maxSize}{maximum memory size that input files are allowed to have in Mb}
+
+\item{launch.browser}{logical; if TRUE (default) the app opens in the system browser}
 }
 \value{
 shiny application object

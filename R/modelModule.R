@@ -70,7 +70,7 @@ modelUI <- function(id="model")
            h3("Visualize Design"),
            uiOutput(NS(id,'visDesignPlot')),
            br(),
-           actionButton(inputId=NS(id,"fitModel"), label="Fit Model!")
+           actionButton(inputId=NS(id,"fitModel"), label="Fit Model!", class = "btn-success")
            ) #end column
           )
 }

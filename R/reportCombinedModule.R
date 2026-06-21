@@ -21,7 +21,7 @@ reportCombinedUI <- function(id = "report") {
           )
         )
       ),
-      downloadButton(NS(id, "report"), "Generate full report bundle")
+      downloadButton(NS(id, "report"), "Generate full report bundle", class = "btn-success")
     )
   )
 }
@@ -68,7 +68,7 @@ reportCombinedServer <- function(id = "report", variables,
     doLog              <- metaReactive({..(preprocessingServerInput$doLog())},              varname = "doLog")
     fCol               <- metaReactive({..(preprocessingServerInput$fCol())},               varname = "fCol")
     nameAssay          <- metaReactive({..(preprocessingServerInput$nameAssay())},          varname = "nameAssay")
-    threshold          <- metaReactive({..(preprocessingServerInput$threshold())},          varname = "threshold")
+    minObs             <- metaReactive({..(preprocessingServerInput$minObs())},             varname = "minObs")
     nameFilterNAAssay  <- metaReactive({..(preprocessingServerInput$nameFilterNAAssay())},  varname = "nameFilterNAAssay")
     nameLogAssay       <- metaReactive({..(preprocessingServerInput$nameLogAssay())},       varname = "nameLogAssay")
     normMethod         <- metaReactive({..(preprocessingServerInput$normMethod())},         varname = "normMethod")
@@ -77,7 +77,7 @@ reportCombinedServer <- function(id = "report", variables,
     aggrCol            <- metaReactive({..(preprocessingServerInput$aggrCol())},            varname = "aggrCol")
     nameAggrAssay      <- metaReactive({..(preprocessingServerInput$nameAggrAssay())},      varname = "nameAggrAssay")
     nprecFilter        <- metaReactive({..(preprocessingServerInput$nprecFilter())},        varname = "nprecFilter")
-    threshold2         <- metaReactive({..(preprocessingServerInput$threshold2())},         varname = "threshold2")
+    minObs2            <- metaReactive({..(preprocessingServerInput$minObs2())},            varname = "minObs2")
     nameFilterNA2Assay <- metaReactive({..(preprocessingServerInput$nameFilterNA2Assay())}, varname = "nameFilterNA2Assay")
 
     # ---- Modelling metaReactives ----
@@ -147,7 +147,7 @@ reportCombinedServer <- function(id = "report", variables,
             if (!is.null(preprocessingServerInput$doLog()))              invisible(doLog()),
             if (!is.null(preprocessingServerInput$fCol()))               invisible(fCol()),
             if (!is.null(preprocessingServerInput$nameAssay()))          invisible(nameAssay()),
-            if (!is.null(preprocessingServerInput$threshold()))          invisible(threshold()),
+            if (!is.null(preprocessingServerInput$minObs()))             invisible(minObs()),
             if (!is.null(preprocessingServerInput$nameFilterNAAssay()))  invisible(nameFilterNAAssay()),
             if (!is.null(preprocessingServerInput$nameLogAssay()))       invisible(nameLogAssay()),
             if (!is.null(preprocessingServerInput$normMethod()))         invisible(normMethod()),
@@ -156,7 +156,7 @@ reportCombinedServer <- function(id = "report", variables,
             if (!is.null(preprocessingServerInput$aggrCol()))            invisible(aggrCol()),
             if (!is.null(preprocessingServerInput$nameAggrAssay()))      invisible(nameAggrAssay()),
             if (!is.null(preprocessingServerInput$nprecFilter()))        invisible(nprecFilter()),
-            if (!is.null(preprocessingServerInput$threshold2()))         invisible(threshold2()),
+            if (!is.null(preprocessingServerInput$minObs2()))            invisible(minObs2()),
             if (!is.null(preprocessingServerInput$nameFilterNA2Assay())) invisible(nameFilterNA2Assay())
           ))
 

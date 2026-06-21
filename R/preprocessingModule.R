@@ -42,11 +42,19 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Filter missing values"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(4, sliderInput(NS(id, "threshold"), "Threshold", value = 1, min = 0, max = 1, step = 0.01)),
+          column(4,
+            tags$label("Min. observations"),
+            div(style = "display: flex; align-items: center; gap: 6px;",
+              div(style = "flex: 1;",
+                sliderInput(NS(id, "minObs"), NULL, value = 0, min = 0, max = 1, step = 1, ticks = FALSE)
+              ),
+              numericInput(NS(id, "minObsNum"), NULL, value = 0, min = 0, step = 1, width = "75px")
+            )
+          ),
           column(3, textInput(NS(id, "nameFilterNAAssay"), "Name", value = "quants_filter_na")),
           column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_filter_na"), "Test", class = "btn-primary", style = "display: block;"))
         ),
-        helpText("Removes features with proportion of missing values above threshold."),
+        helpText("Removes features observed in fewer than the minimum number of samples."),
         uiOutput(NS(id, "missingValUI"))
       ),
 
@@ -70,11 +78,19 @@ preprocessingUI <- function(id = "preprocessing") {
       div(style = "margin-bottom: 15px;",
         tags$label("Filter missing values (post-aggregation)"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(4, sliderInput(NS(id, "threshold2"), "Threshold", value = 1, min = 0, max = 1, step = 0.01)),
+          column(4,
+            tags$label("Min. observations"),
+            div(style = "display: flex; align-items: center; gap: 6px;",
+              div(style = "flex: 1;",
+                sliderInput(NS(id, "minObs2"), NULL, value = 0, min = 0, max = 1, step = 1, ticks = FALSE)
+              ),
+              numericInput(NS(id, "minObsNum2"), NULL, value = 0, min = 0, step = 1, width = "75px")
+            )
+          ),
           column(3, textInput(NS(id, "nameFilterNA2Assay"), "Name", value = "proteins_filter_na")),
           column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_filter_na2"), "Test", class = "btn-primary", style = "display: block;"))
         ),
-        helpText("Removes proteins with proportion of missing values above threshold."),
+        helpText("Removes proteins observed in fewer than the minimum number of samples."),
         uiOutput(NS(id, "missingValUI2"))
       ),
 
@@ -127,6 +143,55 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     # Flag set to TRUE whenever preprocessing itself writes variables$qfeatures,
     # so the snapshot observer below knows not to treat that write as a new import.
     preprocessingModifiedQF <- reactiveVal(FALSE)
+
+    nSamples <- reactive({
+      req(variables$qfeatures)
+      nrow(SummarizedExperiment::colData(variables$qfeatures))
+    })
+
+    # Update slider and numericInput maxima once data is loaded (do not reset
+    # value so the user's choice is preserved across run_all and annotation updates)
+    observeEvent(variables$qfeatures, {
+      n <- nrow(SummarizedExperiment::colData(variables$qfeatures))
+      updateSliderInput(session, "minObs",    max = n, step = 1)
+      updateSliderInput(session, "minObs2",   max = n, step = 1)
+      updateNumericInput(session, "minObsNum",  max = n)
+      updateNumericInput(session, "minObsNum2", max = n)
+    })
+
+    # Sync minObs slider ↔ numeric input (slider is the source of truth)
+    observeEvent(input$minObs, {
+      if (!isTRUE(input$minObsNum == input$minObs))
+        updateNumericInput(session, "minObsNum", value = input$minObs)
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$minObsNum, {
+      req(is.numeric(input$minObsNum), !is.na(input$minObsNum))
+      val <- max(0L, as.integer(floor(input$minObsNum)))
+      if (!is.null(variables$qfeatures))
+        val <- min(val, nrow(SummarizedExperiment::colData(variables$qfeatures)))
+      if (!isTRUE(input$minObs == val))
+        updateSliderInput(session, "minObs", value = val)
+      if (!isTRUE(input$minObsNum == val))
+        updateNumericInput(session, "minObsNum", value = val)
+    }, ignoreInit = TRUE)
+
+    # Sync minObs2 slider ↔ numeric input
+    observeEvent(input$minObs2, {
+      if (!isTRUE(input$minObsNum2 == input$minObs2))
+        updateNumericInput(session, "minObsNum2", value = input$minObs2)
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$minObsNum2, {
+      req(is.numeric(input$minObsNum2), !is.na(input$minObsNum2))
+      val <- max(0L, as.integer(floor(input$minObsNum2)))
+      if (!is.null(variables$qfeatures))
+        val <- min(val, nrow(SummarizedExperiment::colData(variables$qfeatures)))
+      if (!isTRUE(input$minObs2 == val))
+        updateSliderInput(session, "minObs2", value = val)
+      if (!isTRUE(input$minObsNum2 == val))
+        updateNumericInput(session, "minObsNum2", value = val)
+    }, ignoreInit = TRUE)
 
     # Ensure qf_tmp is always initialised before any test runs
     ensureQfTmp <- function() {
@@ -381,31 +446,31 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     })
 
     output$missingValPlot <- renderPlot({
-      req(variables$qf_tmp, missingValAssay(), input$threshold)
-      PlotMissingValues(variables$qf_tmp, missingValAssay(), input$threshold)
+      req(variables$qf_tmp, missingValAssay())
+      PlotMissingValues(variables$qf_tmp, missingValAssay(), input$minObs)
     })
 
     # ---- Test: Filter NA ----
     observeEvent(input$test_filter_na, {
       ensureQfTmp()
-      if (isTRUE(input$threshold >= 1)) {
-        showNotification("Filter NA skipped (threshold = 1, no features removed)", type = "message", duration = 3)
+      if (isTRUE(input$minObs <= 0)) {
+        showNotification("Filter NA skipped (min. observations = 0, no features removed)", type = "message", duration = 3)
         return()
       }
-      req(variables$qf_tmp, input$threshold, input$nameFilterNAAssay)
+      req(variables$qf_tmp, nSamples(), input$nameFilterNAAssay)
       filterNA_i <- if (!is.null(input$nameAssay) && input$nameAssay %in% names(variables$qf_tmp)) {
         input$nameAssay
       } else {
         names(variables$qf_tmp)[1]
       }
-      variables$qf_tmp <- try({
-        se <- QFeatures::filterNA(variables$qf_tmp[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
-        QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNAAssay)
-      })
-      if (inherits(variables$qf_tmp, "try-error")) {
+      se <- try(QFeatures::filterNA(variables$qf_tmp[, , filterNA_i], i = filterNA_i, pNA = 1 - input$minObs / nSamples())[[filterNA_i]])
+      if (inherits(se, "try-error")) {
         showNotification("Test failed", type = "error", duration = 5)
-      } else {
+      } else if (nrow(se) < nrow(variables$qf_tmp[[filterNA_i]])) {
+        variables$qf_tmp <- QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNAAssay)
         showNotification("Okay!", type = "message", duration = 5)
+      } else {
+        showNotification("Filter removed 0 features — assay not added", type = "message", duration = 5)
       }
     })
 
@@ -545,8 +610,8 @@ preprocessingServer <- function(id = "preprocessing", variables) {
     })
 
     output$missingValPlot2 <- renderPlot({
-      req(variables$qf_tmp, missingValAssay2(), input$threshold2)
-      PlotMissingValues(variables$qf_tmp, missingValAssay2(), input$threshold2)
+      req(variables$qf_tmp, missingValAssay2())
+      PlotMissingValues(variables$qf_tmp, missingValAssay2(), input$minObs2)
     })
 
     # ---- Test: Filter NA post-aggregation ----
@@ -556,19 +621,19 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         showNotification("Requires aggregation first", type = "warning", duration = 4)
         return()
       }
-      if (isTRUE(input$threshold2 >= 1)) {
-        showNotification("Post-aggregation filter NA skipped (threshold = 1, no features removed)", type = "message", duration = 3)
+      if (isTRUE(input$minObs2 <= 0)) {
+        showNotification("Post-aggregation filter NA skipped (min. observations = 0, no features removed)", type = "message", duration = 3)
         return()
       }
-      req(variables$qf_tmp, input$nameAggrAssay, input$threshold2, input$nameFilterNA2Assay)
-      variables$qf_tmp <- try({
-        se <- QFeatures::filterNA(variables$qf_tmp[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = input$threshold2)[[input$nameAggrAssay]]
-        QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNA2Assay)
-      })
-      if (inherits(variables$qf_tmp, "try-error")) {
+      req(variables$qf_tmp, input$nameAggrAssay, nSamples(), input$nameFilterNA2Assay)
+      se <- try(QFeatures::filterNA(variables$qf_tmp[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = 1 - input$minObs2 / nSamples())[[input$nameAggrAssay]])
+      if (inherits(se, "try-error")) {
         showNotification("Test failed", type = "warning", duration = 5)
-      } else {
+      } else if (nrow(se) < nrow(variables$qf_tmp[[input$nameAggrAssay]])) {
+        variables$qf_tmp <- QFeatures::addAssay(variables$qf_tmp, se, input$nameFilterNA2Assay)
         showNotification("Okay!", type = "message", duration = 5)
+      } else {
+        showNotification("Filter removed 0 features — assay not added", type = "message", duration = 5)
       }
     })
 
@@ -610,16 +675,18 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       } else {
         names(qf)[1]
       }
-      filterNA_out <- if (isTRUE(input$threshold >= 1)) {
+      filterNA_out <- if (isTRUE(input$minObs <= 0)) {
         filterNA_i  # skip — pass through the current assay name
       } else {
         req(input$nameFilterNAAssay)
-        qf <- try({
-          se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = input$threshold)[[filterNA_i]]
-          QFeatures::addAssay(qf, se, input$nameFilterNAAssay)
-        })
-        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
-        input$nameFilterNAAssay
+        se <- try(QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = 1 - input$minObs / nSamples())[[filterNA_i]])
+        if (inherits(se, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Filter NA", type = "error"); return() }
+        if (nrow(se) < nrow(qf[[filterNA_i]])) {
+          qf <- QFeatures::addAssay(qf, se, input$nameFilterNAAssay)
+          input$nameFilterNAAssay
+        } else {
+          filterNA_i
+        }
       }
 
       # Step 5: log transform
@@ -673,14 +740,15 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         })
         if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Aggregation", type = "error"); return() }
       }
-      # Step 8: filter NA post-aggregation (only when aggregation was performed and threshold < 1)
-      if (input$aggrMethod != "None" && !isTRUE(input$threshold2 >= 1)) {
+      # Step 8: filter NA post-aggregation (only when aggregation was performed and threshold > 0)
+      if (input$aggrMethod != "None" && !isTRUE(input$minObs2 <= 0)) {
         req(input$nameFilterNA2Assay)
-        qf <- try({
-          se <- QFeatures::filterNA(qf[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = input$threshold2)[[input$nameAggrAssay]]
-          QFeatures::addAssay(qf, se, input$nameFilterNA2Assay)
-        })
-        if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+        se <- try(QFeatures::filterNA(qf[, , input$nameAggrAssay], i = input$nameAggrAssay, pNA = 1 - input$minObs2 / nSamples())[[input$nameAggrAssay]])
+        if (inherits(se, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+        if (nrow(se) < nrow(qf[[input$nameAggrAssay]])) {
+          qf <- try(QFeatures::addAssay(qf, se, input$nameFilterNA2Assay))
+          if (inherits(qf, "try-error")) { remove_modal_spinner(); showNotification("Failed at: Post-aggregation filter NA", type = "error"); return() }
+        }
       }
 
       preprocessingModifiedQF(TRUE)
@@ -711,7 +779,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       doLog              = reactive(input$doLog),
       fCol               = reactive(input$fCol),
       nameAssay          = reactive(input$nameAssay),
-      threshold          = reactive(input$threshold),
+      minObs             = reactive(input$minObs),
       nameFilterNAAssay  = reactive(input$nameFilterNAAssay),
       nameLogAssay       = reactive(input$nameLogAssay),
       normMethod         = reactive(input$normMethod),
@@ -720,7 +788,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       aggrCol            = reactive(input$aggrCol),
       nameAggrAssay      = reactive(input$nameAggrAssay),
       nprecFilter        = reactive(input$nprecFilter),
-      threshold2         = reactive(input$threshold2),
+      minObs2            = reactive(input$minObs2),
       nameFilterNA2Assay = reactive(input$nameFilterNA2Assay)
     ))
   })

@@ -139,8 +139,15 @@ Remove features with a high proportion of missing values across samples.
 ```{r preprocessing step 4}
 # Step 4: filter NA
 filterNA_i <- if (!is.null(nameAssay) && nameAssay %in% names(qf)) nameAssay else names(qf)[1]
-se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = threshold)[[filterNA_i]]
-qf <- QFeatures::addAssay(qf, se, nameFilterNAAssay)
+nSamples <- ncol(qf[[filterNA_i]])
+pNA <- 1 - minObs / nSamples
+se <- QFeatures::filterNA(qf[, , filterNA_i], i = filterNA_i, pNA = pNA)[[filterNA_i]]
+filterNA_out <- if (nrow(se) < nrow(qf[[filterNA_i]])) {
+  qf <- QFeatures::addAssay(qf, se, nameFilterNAAssay)
+  nameFilterNAAssay
+} else {
+  filterNA_i
+}
 ```
 
 Perform log2-transformation.
@@ -148,9 +155,9 @@ Perform log2-transformation.
 ```{r preprocessing step 5}
 # Step 5: log transform
 if (doLog) {
-  qf <- QFeatures::logTransform(qf, base = 2, i = nameFilterNAAssay, name = nameLogAssay)
+  qf <- QFeatures::logTransform(qf, base = 2, i = filterNA_out, name = nameLogAssay)
 }
-normInput <- if (!doLog) nameFilterNAAssay else nameLogAssay
+normInput <- if (!doLog) filterNA_out else nameLogAssay
 ```
 
 Apply normalisation to adjust for sample-specific loading differences.
@@ -199,8 +206,12 @@ Remove proteins with a high proportion of missing values after aggregation. Note
 ```{r preprocessing step 8}
 # Step 8: filter NA post-aggregation (only when aggregation was performed)
 if (aggrMethod != "None") {
-  se <- QFeatures::filterNA(qf[, , nameAggrAssay], i = nameAggrAssay, pNA = threshold2)[[nameAggrAssay]]
-  qf <- QFeatures::addAssay(qf, se, nameFilterNA2Assay)
+  nSamples <- ncol(qf[[nameAggrAssay]])
+  pNA2 <- 1 - minObs2 / nSamples
+  se <- QFeatures::filterNA(qf[, , nameAggrAssay], i = nameAggrAssay, pNA = pNA2)[[nameAggrAssay]]
+  if (nrow(se) < nrow(qf[[nameAggrAssay]])) {
+    qf <- QFeatures::addAssay(qf, se, nameFilterNA2Assay)
+  }
 }
 ```
 

@@ -49,7 +49,7 @@ importUI <- function(id="import")
            div(
              list(
                tags$label("QFeatures", `for`="buildQFeatures"),
-               actionButton(NS(id, "buildQFeatures"),"Build the QFeatures object"),
+               actionButton(NS(id, "buildQFeatures"), "Build the QFeatures object", class = "btn-success"),
                helpText(id = "tooltip_buildQFeatures",
                         "The button generate a QFeatures object.")
              )
@@ -66,7 +66,7 @@ importUI <- function(id="import")
              list(
                tags$label("Annotation file", `for`="annot"),
                fileInput(inputId=NS(id,"annot"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
-               actionButton(NS(id, "addAnnot"), "Add annotation"),
+               actionButton(NS(id, "addAnnot"), "Add annotation", class = "btn-success"),
                helpText(id = "tooltip_annotation",
                         "Upload the annotation file and click 'Add annotation'. The first column must match the sample names exactly. Grouping variables (e.g. condition) should be written as strings (e.g. 'D2', 'D4') so they are treated as factors. Numeric columns are kept as numeric.")
              )
@@ -110,6 +110,7 @@ importUI <- function(id="import")
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
 #' @importFrom DT datatable
+#' @importFrom arrow read_parquet
 #'
 importServer <- function(id="import", variables){
   moduleServer(

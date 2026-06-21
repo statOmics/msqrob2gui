@@ -20,7 +20,7 @@ inferenceUI <- function(id="inference")
                  fluidRow(
                    style = "display: flex; align-items: center;",
                    column(8, textInput(NS(id, "contrastFormula"), label = NULL, value = "", placeholder = "e.g. treatmentB = 0")),
-                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addContrast"), "Add"), class = "control-label", style = "display: block;")
+                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addContrast"), "Add", class = "btn-primary"), class = "control-label", style = "display: block;")
                  ),
                  #hidden(
                    helpText(id="tooltip_contrast",
@@ -41,7 +41,7 @@ inferenceUI <- function(id="inference")
                  fluidRow(
                    style = "display: flex; align-items: center;",
                    column(8, selectizeInput(NS(id, "pairwiseVar"), label = NULL, choices = NULL)),
-                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addPairwiseContrasts"), "Add all pairwise contrasts"), class = "control-label", style = "display: block;")
+                   column(4, tags$label(HTML("&nbsp;")), actionButton(NS(id, "addPairwiseContrasts"), "Add all pairwise contrasts", class = "btn-primary"), class = "control-label", style = "display: block;")
                  ),
                  helpText(id = "tooltip_pairwiseVar",
                           "Select a factor variable from the design and click 'Add all pairwise contrasts' to add a contrast for every pairwise comparison between its levels to the list below.
@@ -49,8 +49,8 @@ inferenceUI <- function(id="inference")
                           ),
                  uiOutput(NS(id, "contrastListUI")),
                  fluidRow(
-                   column(4, actionButton(NS(id, "clearContrasts"), "Clear all contrasts")),
-                   column(4, actionButton(NS(id, "runContrasts"), "Test all contrasts", class = "btn-primary"))
+                   column(4, actionButton(NS(id, "clearContrasts"), "Clear all contrasts", class = "btn-primary")),
+                   column(4, actionButton(NS(id, "runContrasts"), "Test all contrasts", class = "btn-success"))
                  ),
                  selectInput(NS(id, "selectedContrast"), label = "Select contrast to display below", choices = NULL)
                )
