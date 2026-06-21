@@ -14,6 +14,11 @@ importUI <- function(id="import")
 {
   fluidRow(
     column(width=12,
+           tags$head(tags$script(HTML(
+             "$(document).on('shiny:connected', function() {
+                $('.btn-file').removeClass('btn-default').addClass('btn-primary');
+              });"
+           ))),
            div(
              list(
                tags$label("Software", `for`="software"),
@@ -57,7 +62,7 @@ importUI <- function(id="import")
            div(
              list(
                tags$label("Export sample names for the annotation file", `for`="printed_annot"),
-               downloadButton(NS(id, "printed_annot"),"Export sample names"),
+               downloadButton(NS(id, "printed_annot"), "Export sample names", class = "btn-primary"),
                helpText(id = "tooltip_printed_annot",
                         "The button generate a csv file with the samples' names of the input file, which the user can modify to create an annotation file.")
              )
