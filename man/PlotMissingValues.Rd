@@ -2,22 +2,22 @@
 % Please edit documentation in R/utilitiesPreprocessing.R
 \name{PlotMissingValues}
 \alias{PlotMissingValues}
-\title{Histogram of proportion of missing values per feature}
+\title{Histogram of observed values per feature}
 \usage{
-PlotMissingValues(pe, assayName, threshold)
+PlotMissingValues(pe, assayName, minObs)
 }
 \arguments{
 \item{pe}{A \code{QFeatures} object.}
 
 \item{assayName}{Character. Name of the assay to plot.}
 
-\item{threshold}{Numeric. The NA proportion threshold shown as a vertical
+\item{minObs}{Integer. The minimum observations threshold shown as a vertical
 red dashed line.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Histogram of proportion of missing values per feature
+Histogram of observed values per feature
 }
 \keyword{internal}

@@ -9,6 +9,13 @@ modelUI <- function(id="model")
 {
   fluidRow(
     column(width=12,
+           div(
+             list(
+               tags$label("Select Assay", `for`="selectAssay"),
+               uiOutput(NS(id, "selectAssay")),
+               helpText("Select the QFeatures assay to model.")
+             )
+           ),
            h3("Build Model"),
            h4("Following variables can be selected to build the model: "),
            h4(htmlOutput(NS(id,"selectFixed"))),
@@ -70,7 +77,7 @@ modelUI <- function(id="model")
            h3("Visualize Design"),
            uiOutput(NS(id,'visDesignPlot')),
            br(),
-           actionButton(inputId=NS(id,"fitModel"), label="Fit Model!")
+           actionButton(inputId=NS(id,"fitModel"), label="Fit Model!", class = "btn-success")
            ) #end column
           )
 }
@@ -89,6 +96,17 @@ modelServer <- function(id="model", variables){
   moduleServer(
     id,
     function(input,output,session){
+
+      ## Assay selector
+      assayNamesPe <- reactive(names(variables$qfeatures))
+
+      output$selectAssay <- renderUI({
+        selectInput(session$ns("selectedAssay"), NULL, assayNamesPe(), selected = variables$selectedAssay, width = "100%")
+      })
+
+      observeEvent(input$selectedAssay, {
+        variables$selectedAssay <- input$selectedAssay
+      })
 
       ## Pass variable names in coldata to UI
       output$selectFixed <- renderUI({

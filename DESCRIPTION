@@ -47,7 +47,8 @@ Imports:
     altSEE,
     callr,
     httpuv,
-    knitr
+    knitr,
+    arrow
 Suggests:
     tidyverse,
     limma

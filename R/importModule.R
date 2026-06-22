@@ -14,6 +14,11 @@ importUI <- function(id="import")
 {
   fluidRow(
     column(width=12,
+           tags$head(tags$script(HTML(
+             "$(document).on('shiny:connected', function() {
+                $('.btn-file').removeClass('btn-default').addClass('btn-primary');
+              });"
+           ))),
            div(
              list(
                tags$label("Software", `for`="software"),
@@ -49,7 +54,7 @@ importUI <- function(id="import")
            div(
              list(
                tags$label("QFeatures", `for`="buildQFeatures"),
-               actionButton(NS(id, "buildQFeatures"),"Build the QFeatures object"),
+               actionButton(NS(id, "buildQFeatures"), "Build the QFeatures object", class = "btn-success"),
                helpText(id = "tooltip_buildQFeatures",
                         "The button generate a QFeatures object.")
              )
@@ -57,7 +62,7 @@ importUI <- function(id="import")
            div(
              list(
                tags$label("Export sample names for the annotation file", `for`="printed_annot"),
-               downloadButton(NS(id, "printed_annot"),"Export sample names"),
+               downloadButton(NS(id, "printed_annot"), "Export sample names", class = "btn-primary"),
                helpText(id = "tooltip_printed_annot",
                         "The button generate a csv file with the samples' names of the input file, which the user can modify to create an annotation file.")
              )
@@ -66,7 +71,7 @@ importUI <- function(id="import")
              list(
                tags$label("Annotation file", `for`="annot"),
                fileInput(inputId=NS(id,"annot"), label=NULL, multiple = FALSE, accept = NULL, width = NULL),
-               actionButton(NS(id, "addAnnot"), "Add annotation"),
+               actionButton(NS(id, "addAnnot"), "Add annotation", class = "btn-success"),
                helpText(id = "tooltip_annotation",
                         "Upload the annotation file and click 'Add annotation'. The first column must match the sample names exactly. Grouping variables (e.g. condition) should be written as strings (e.g. 'D2', 'D4') so they are treated as factors. Numeric columns are kept as numeric.")
              )
@@ -110,6 +115,7 @@ importUI <- function(id="import")
 #' @importFrom shinymeta metaReactive
 #' @importFrom MultiAssayExperiment getWithColData
 #' @importFrom DT datatable
+#' @importFrom arrow read_parquet
 #'
 importServer <- function(id="import", variables){
   moduleServer(
@@ -245,7 +251,8 @@ importServer <- function(id="import", variables){
       # store in variables
       observe({
         req(qfeatures())
-        variables$qfeatures <- qfeatures()
+        variables$qfeatures        <- qfeatures()
+        variables$qfeatures_import <- qfeatures()
         variables$software <- input$software
       })
       
@@ -316,7 +323,8 @@ importServer <- function(id="import", variables){
 
         SummarizedExperiment::colData(qf) <- S4Vectors::DataFrame(annot)
 
-        variables$qfeatures <- qf
+        variables$qfeatures        <- qf
+        variables$qfeatures_import <- qf
         showNotification("Annotation added successfully", type = "message")
       })
       

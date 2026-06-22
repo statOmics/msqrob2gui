@@ -12,23 +12,23 @@
 #' @importFrom omicsGMF runGMF
 NULL
 
-#' Histogram of proportion of missing values per feature
+#' Histogram of observed values per feature
 #'
 #' @param pe A \code{QFeatures} object.
 #' @param assayName Character. Name of the assay to plot.
-#' @param threshold Numeric. The NA proportion threshold shown as a vertical
+#' @param minObs Integer. The minimum observations threshold shown as a vertical
 #'   red dashed line.
 #' @return A \code{ggplot} object.
 #' @keywords internal
-PlotMissingValues <- function(pe, assayName, threshold) {
+PlotMissingValues <- function(pe, assayName, minObs) {
   mat <- SummarizedExperiment::assay(pe[[assayName]])
-  df  <- data.frame(pNA = rowMeans(is.na(mat)))
-  ggplot(df, aes(x = pNA)) +
+  df  <- data.frame(nObs = rowSums(!is.na(mat)))
+  ggplot(df, aes(x = nObs)) +
     geom_histogram(bins = 30, fill = "steelblue", colour = "white") +
-    geom_vline(xintercept = threshold, colour = "red", linetype = "dashed", linewidth = 1) +
+    geom_vline(xintercept = minObs, colour = "red", linetype = "dashed", linewidth = 1) +
     labs(
-      title = paste("Missing value distribution —", assayName),
-      x     = "Proportion of missing values",
+      title = paste("Observed values per feature —", assayName),
+      x     = "Number of observed values",
       y     = "Number of features"
     ) +
     theme_minimal()

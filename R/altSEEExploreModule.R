@@ -29,7 +29,7 @@ altSEEExploreUI <- function(id = "explore") {
         helpText("Optional — LookupColumn / MapColumn in LinkedFeaturesAssayPlot.")
       ),
       br(),
-      actionButton(ns("launchISEE"), "Launch iSEE", class = "btn-primary",
+      actionButton(ns("launchISEE"), "Launch iSEE", class = "btn-success",
                    icon = icon("rocket"), width = "100%"),
       br(), br(),
       uiOutput(ns("iseeStatus"))
