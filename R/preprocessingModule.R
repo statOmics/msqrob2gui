@@ -210,8 +210,7 @@ preprocessingServer <- function(id = "preprocessing", variables) {
         preprocessingModifiedQF(FALSE)
         return()
       }
-      variables$qfeatures_import <- variables$qfeatures
-      variables$qf_tmp           <- variables$qfeatures
+      variables$qf_tmp <- variables$qfeatures
     })
 
     observeEvent(input$restore_qf, {

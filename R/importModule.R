@@ -251,7 +251,8 @@ importServer <- function(id="import", variables){
       # store in variables
       observe({
         req(qfeatures())
-        variables$qfeatures <- qfeatures()
+        variables$qfeatures        <- qfeatures()
+        variables$qfeatures_import <- qfeatures()
         variables$software <- input$software
       })
       
@@ -322,7 +323,8 @@ importServer <- function(id="import", variables){
 
         SummarizedExperiment::colData(qf) <- S4Vectors::DataFrame(annot)
 
-        variables$qfeatures <- qf
+        variables$qfeatures        <- qf
+        variables$qfeatures_import <- qf
         showNotification("Annotation added successfully", type = "message")
       })
       
