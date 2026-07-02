@@ -48,8 +48,7 @@ altSEEExploreUI <- function(id = "explore") {
 
 #' altSEE explore tab server
 #' @keywords internal
-#' @importFrom shiny moduleServer observeEvent renderUI req showNotification selectInput
-#'   selectizeInput reactiveValues observe reactiveTimer tagList tags
+#' @importFrom shiny moduleServer observeEvent renderUI req showNotification selectInput selectizeInput reactiveValues observe reactiveTimer tagList tags
 #' @importFrom SummarizedExperiment colData rowData assay
 #' @importFrom DT datatable renderDT
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner

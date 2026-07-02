@@ -90,6 +90,7 @@ modelUI <- function(id="model")
 #' @rdname INTERNAL_modelServer
 #' @keywords internal
 #'
+#' @importFrom BiocParallel bpparam register SerialParam
 #' @importFrom ExploreModelMatrix VisualizeDesign
 #' @importFrom msqrob2 msqrob
 modelServer <- function(id="model", variables){
@@ -173,7 +174,10 @@ modelServer <- function(id="model", variables){
         )
 
         peOut <- variables$qfeatures
+        oldBP <- BiocParallel::bpparam()
+        BiocParallel::register(BiocParallel::SerialParam())
         peOut <- try(msqrob(object=peOut,i=variables$selectedAssay, formula=stats::as.formula(input$designFormula),overwrite=TRUE, robust=input$doRobust==1, ridge=input$doRidge==1))
+        BiocParallel::register(oldBP)
 
         if (class(peOut)=="QFeatures") {
           variables$qfeatures <- peOut

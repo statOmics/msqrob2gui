@@ -50,6 +50,7 @@ importUI <- function(id="import")
              )
            ),
            uiOutput(NS(id, "columnSelectors")),
+           uiOutput(NS(id, "quantColSelector")),
            uiOutput(NS(id, "nameInput")),
            div(
              list(
@@ -143,55 +144,74 @@ importServer <- function(id="import", variables){
       
       
       
-      # select columns
+      # select columns (feature ID + run column only — must NOT depend on
+      # input$runCol/input$fnames themselves, or picking a value here would
+      # immediately rebuild and reset this very block)
       output$columnSelectors <- renderUI({
         req(variables$pe)
 
         cols <- colnames(variables$pe)
 
         cfg <- switch(input$software,
-                      diann = list(
-                        fnames   = "Precursor.Id",
-                        runCol   = "Run",
-                        quantCol = "Precursor.Quantity"
-                      ),
-                      spectronaut = list(
-                        fnames   = "EG_PrecursorId",
-                        runCol   = "R_FileName",
-                        quantCol = "FG_MS2RawQuantity"
-                      ),
-                      maxquant = list(
-                        fnames   = "Sequence",
-                        runCol   = NULL,
-                        quantCol = grep("Intensity.", cols, value = TRUE)
-                      ),
-                      other = list(
-                        fnames   = NULL,
-                        runCol   = NULL,
-                        quantCol = NULL
-                      )
+                      diann = list(fnames = "Precursor.Id",   runCol = "Run"),
+                      spectronaut = list(fnames = "EG_PrecursorId", runCol = "R_FileName"),
+                      maxquant = list(fnames = "Sequence",     runCol = NULL),
+                      other = list(fnames = NULL, runCol = NULL)
         )
 
-        # "None" means wide format. On the first render input$runCol is NULL,
-        # so fall back to cfg: if cfg$runCol is NULL the software is wide by default.
-        runColSelected <- if (is.null(cfg$runCol)) "None" else cfg$runCol
-        isLong <- if (is.null(input$runCol)) !is.null(cfg$runCol) else input$runCol != "None"
+        # Preserve the user's current picks across re-renders (e.g. a software
+        # change) as long as they're still valid columns in this file; otherwise
+        # fall back to the software-specific default. isolate() so that reading
+        # input$fnames/input$runCol here does not itself retrigger this block.
+        fnamesSelected <- isolate({
+          if (!is.null(input$fnames) && input$fnames %in% cols) input$fnames else cfg$fnames
+        })
+        runColSelected <- isolate({
+          if (!is.null(input$runCol) && input$runCol %in% c("None", cols)) {
+            input$runCol
+          } else if (!is.null(cfg$runCol)) {
+            cfg$runCol
+          } else {
+            "None"
+          }
+        })
 
         list(
           tags$label("Column selection"),
-          selectizeInput(NS(id, "fnames"),   "Feature ID column",
-                         choices = cols, selected = cfg$fnames),
-          selectizeInput(NS(id, "runCol"),   "Run column",
-                         choices = c("None", cols), selected = runColSelected),
-          if (isLong) {
-            selectizeInput(NS(id, "quantCol"), "Intensity column",
-                           choices = cols, selected = cfg$quantCol)
-          } else {
-            selectizeInput(NS(id, "quantCols"), "Intensity columns",
-                           choices = cols, selected = cfg$quantCol,
-                           multiple = TRUE)
-          }
+          selectizeInput(NS(id, "fnames"), "Feature ID column",
+                         choices = cols, selected = fnamesSelected),
+          selectizeInput(NS(id, "runCol"), "Run column",
+                         choices = c("None", cols), selected = runColSelected)
         )
+      })
+
+      # intensity column(s): long (quantCol) vs wide (quantCols) depends on
+      # whether a run column is selected, kept separate from columnSelectors
+      # so toggling it doesn't rebuild fnames/runCol
+      output$quantColSelector <- renderUI({
+        req(variables$pe)
+
+        cols <- colnames(variables$pe)
+
+        cfg <- switch(input$software,
+                      diann = list(quantCol = "Precursor.Quantity"),
+                      spectronaut = list(quantCol = "FG_MS2RawQuantity"),
+                      maxquant = list(quantCol = grep("Intensity.", cols, value = TRUE)),
+                      other = list(quantCol = NULL)
+        )
+
+        isLong <- !is.null(input$runCol) && input$runCol != "None"
+
+        if (isLong) {
+          selectizeInput(NS(id, "quantCol"), "Intensity column",
+                         choices = cols,
+                         selected = if (!is.null(input$quantCol) && input$quantCol %in% cols) input$quantCol else cfg$quantCol)
+        } else {
+          selectizeInput(NS(id, "quantCols"), "Intensity columns",
+                         choices = cols,
+                         selected = if (!is.null(input$quantCols) && all(input$quantCols %in% cols)) input$quantCols else cfg$quantCol,
+                         multiple = TRUE)
+        }
       })
       
       # preview raw input file

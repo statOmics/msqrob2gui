@@ -403,8 +403,8 @@ preprocessingServer <- function(id = "preprocessing", variables) {
       list(
         tags$label("Join assays"),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = variables$fColDefault)),
-          column(3, textInput(NS(id, "nameAssay"), "Name", value = variables$nameAssayDefault)),
+          column(3, selectizeInput(NS(id, "fCol"), "Column", choices = rdCols, selected = if (!is.null(input$fCol) && input$fCol %in% rdCols) input$fCol else variables$fColDefault)),
+          column(3, textInput(NS(id, "nameAssay"), "Name", value = if (!is.null(input$nameAssay)) input$nameAssay else variables$nameAssayDefault)),
           column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_join"), "Test", class = "btn-primary", style = "display: block;"))
         ),
         helpText("Joins multiple assays into a single assay.")
@@ -549,12 +549,12 @@ preprocessingServer <- function(id = "preprocessing", variables) {
           column(3, selectInput(NS(id, "aggrMethod"), "Method",
                                 choices = c("None", "medianPolish", "robustSummary", "colMeans",
                                             "colMedians", "colSums", "maxLFQ"),
-                                selected = variables$aggrMethodDefault)),
-          column(3, textInput(NS(id, "nameAggrAssay"), "Name", value = variables$nameAggrAssayDefault))
+                                selected = if (!is.null(input$aggrMethod)) input$aggrMethod else variables$aggrMethodDefault)),
+          column(3, textInput(NS(id, "nameAggrAssay"), "Name", value = if (!is.null(input$nameAggrAssay)) input$nameAggrAssay else variables$nameAggrAssayDefault))
         ),
         fluidRow(style = "display: flex; align-items: flex-end; gap: 10px;",
-          column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = variables$aggrColDefault)),
-          column(2, numericInput(NS(id, "nprecFilter"), "N-peptides rule", value = if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
+          column(3, selectizeInput(NS(id, "aggrCol"), "Aggregation column", choices = rdCols, selected = if (!is.null(input$aggrCol) && input$aggrCol %in% rdCols) input$aggrCol else variables$aggrColDefault)),
+          column(2, numericInput(NS(id, "nprecFilter"), "N-peptides rule", value = if (!is.null(input$nprecFilter)) input$nprecFilter else if (!is.null(variables$nprecDefault)) variables$nprecDefault else 1, min = 1)),
           column(2, tags$label(HTML("&nbsp;")), actionButton(NS(id, "test_aggr"), "Test", class = "btn-primary", style = "display: block;"))
         )
       )
